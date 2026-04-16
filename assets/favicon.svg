@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="#2D6A4F"/>
+
+  <!-- Fridge body -->
+  <rect x="16" y="10" width="32" height="44" rx="5" fill="white" opacity="0.95"/>
+
+  <!-- Freezer compartment (top) -->
+  <rect x="16" y="10" width="32" height="14" rx="5" fill="white"/>
+  <rect x="16" y="19" width="32" height="5" fill="#D8F3DC"/>
+
+  <!-- Divider line -->
+  <rect x="16" y="23" width="32" height="2" fill="#2D6A4F" opacity="0.2"/>
+
+  <!-- Fridge door handles -->
+  <rect x="26" y="15" width="3" height="7" rx="1.5" fill="#2D6A4F" opacity="0.5"/>
+  <rect x="26" y="30" width="3" height="10" rx="1.5" fill="#2D6A4F" opacity="0.5"/>
+
+  <!-- Camera lens / flash circle (orange) -->
+  <circle cx="43" cy="48" r="10" fill="#E76F51"/>
+  <circle cx="43" cy="48" r="6" fill="white" opacity="0.3"/>
+  <circle cx="43" cy="48" r="3" fill="white" opacity="0.9"/>
+
+  <!-- Sparkle on lens -->
+  <circle cx="40.5" cy="45.5" r="1.2" fill="white" opacity="0.8"/>
+</svg>

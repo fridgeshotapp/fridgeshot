@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/analyze.js": { "maxDuration": 30 },
+    "api/recipes.js": { "maxDuration": 30 },
+    "api/chat.js": { "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" }
+  ]
+}

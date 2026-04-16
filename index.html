@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>FridgeShot — Recetas con lo que tienes en la nevera</title>
+  <meta name="description" content="Haz una foto a tu nevera y FridgeShot te sugiere 3 recetas caseras al instante con IA. 3 análisis gratis por semana, sin tarjeta. AirFryer, Thermomix y Chef IA con Pro.">
+
+  <!-- SEO -->
+  <meta name="keywords" content="recetas con lo que tengo en la nevera, qué cocinar con lo que tengo en casa, app recetas nevera, recetas con ingredientes que tengo, cocinar con lo que tienes, recetas airfryer, recetas thermomix, app cocina gratis">
+  <link rel="canonical" href="https://fridgeshot.vercel.app">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="FridgeShot — Foto de tu nevera → 3 recetas al instante">
+  <meta property="og:description" content="La IA analiza tu nevera y te dice exactamente qué puedes cocinar ahora mismo. Empieza gratis, 3 análisis por semana.">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fridgeshot.vercel.app">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="FridgeShot — Recetas con lo que tienes">
+  <meta name="twitter:description" content="Foto de tu nevera → 3 recetas al instante con IA. Empieza gratis, sin tarjeta.">
+  <meta name="twitter:image" content="/assets/og-image.png">
+
+  <!-- PWA -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Schema.org structured data (para Google) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "FridgeShot",
+    "description": "Haz una foto a tu nevera y recibe 3 recetas caseras al instante con inteligencia artificial.",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "offers": [
+      { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "name": "Gratis" },
+      { "@type": "Offer", "price": "3.99", "priceCurrency": "EUR", "name": "Pro", "description": "Análisis ilimitados, AirFryer, Thermomix, Chef IA y recetas guardadas" }
+    ],
+    "url": "https://fridgeshot.vercel.app/app"
+  }
+  </script>
+
+  <style>
+    :root {
+      --green: #2D6A4F;
+      --green-light: #40916C;
+      --green-pale: #D8F3DC;
+      --cream: #FEFAE0;
+      --orange: #E76F51;
+      --text: #1B2D24;
+      --text-muted: #6B8F71;
+      --border: #e0e8e3;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: white;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────── */
+    header {
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 22px; font-weight: 800; color: var(--green);
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .logo span { color: var(--orange); }
+    .cta-header {
+      background: var(--green); color: white;
+      border: none; border-radius: 20px;
+      padding: 10px 20px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none; display: inline-block;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .cta-header:hover { background: var(--green-light); transform: translateY(-1px); }
+
+    /* ─── HERO ───────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(160deg, var(--cream) 0%, #e8f5ec 100%);
+      padding: 72px 24px 80px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-pale); color: var(--green);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 56px);
+      font-weight: 800; line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+    .hero h1 em {
+      font-style: normal; color: var(--green);
+      background: linear-gradient(135deg, var(--green), var(--green-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--text-muted); max-width: 560px;
+      margin: 0 auto 36px;
+    }
+    .hero-ctas {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    }
+    .cta-primary {
+      background: var(--green); color: white;
+      border: none; border-radius: 14px;
+      padding: 16px 32px; font-size: 17px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none; display: inline-block;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(45,106,79,0.35);
+    }
+    .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(45,106,79,0.4); }
+    .cta-secondary {
+      background: white; color: var(--green);
+      border: 2px solid var(--green); border-radius: 14px;
+      padding: 14px 28px; font-size: 16px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none; display: inline-block;
+      transition: all 0.15s;
+    }
+    .cta-secondary:hover { background: var(--green-pale); }
+    .hero-note {
+      margin-top: 16px; font-size: 13px; color: var(--text-muted);
+    }
+
+    /* ─── STEPS ──────────────────────────────────────── */
+    .section { padding: 80px 24px; max-width: 1000px; margin: 0 auto; }
+    .section-label {
+      text-align: center; font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--green); margin-bottom: 12px;
+    }
+    .section h2 {
+      text-align: center; font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800; margin-bottom: 48px;
+      letter-spacing: -0.5px;
+    }
+    .steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .step {
+      background: var(--cream); border-radius: 20px;
+      padding: 32px 24px; text-align: center;
+      border: 1px solid var(--border);
+    }
+    .step-num {
+      width: 48px; height: 48px;
+      background: var(--green); color: white;
+      border-radius: 50%; font-size: 20px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .step-icon { font-size: 40px; margin-bottom: 12px; display: block; }
+    .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--text-muted); }
+
+    /* ─── FEATURES ───────────────────────────────────── */
+    .features-section { background: var(--cream); padding: 80px 24px; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px; max-width: 1000px; margin: 0 auto;
+    }
+    .feature {
+      background: white; border-radius: 16px;
+      padding: 24px; border: 1px solid var(--border);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .feature-icon {
+      font-size: 28px; flex-shrink: 0;
+      width: 52px; height: 52px;
+      background: var(--green-pale); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feature h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .feature p { font-size: 14px; color: var(--text-muted); }
+
+    /* ─── USO ────────────────────────────────────────── */
+    .use-cases { padding: 80px 24px; max-width: 800px; margin: 0 auto; }
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--cream); border-radius: 14px;
+      padding: 20px 24px; border: 1px solid var(--border);
+    }
+    .faq-item h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .faq-item p { font-size: 14px; color: var(--text-muted); }
+
+    /* ─── PRECIOS ────────────────────────────────────── */
+    .pricing-section { background: var(--cream); padding: 80px 24px; }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; max-width: 700px; margin: 0 auto;
+    }
+    .pricing-card {
+      background: white; border-radius: 20px;
+      padding: 32px; border: 2px solid var(--border);
+    }
+    .pricing-card.featured {
+      border-color: var(--green);
+      box-shadow: 0 8px 32px rgba(45,106,79,0.15);
+    }
+    .pricing-badge {
+      background: var(--green); color: white;
+      border-radius: 8px; padding: 4px 10px;
+      font-size: 12px; font-weight: 700;
+      display: inline-block; margin-bottom: 16px;
+    }
+    .pricing-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .pricing-price {
+      font-size: 40px; font-weight: 800; color: var(--green);
+      margin: 12px 0 4px;
+    }
+    .pricing-price span { font-size: 16px; color: var(--text-muted); font-weight: 400; }
+    .pricing-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .pricing-features li { font-size: 14px; display: flex; gap: 8px; }
+    .pricing-features li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .pricing-features li.no::before { content: "✗"; color: #ccc; }
+    .pricing-features li.no { color: #aaa; }
+    .pricing-cta {
+      width: 100%; padding: 14px;
+      border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none; display: block; text-align: center;
+      transition: all 0.15s;
+    }
+    .pricing-cta.free {
+      background: var(--green-pale); color: var(--green);
+      border: 2px solid var(--green);
+    }
+    .pricing-cta.pro {
+      background: var(--green); color: white; border: none;
+      box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+    }
+    .pricing-cta:hover { transform: translateY(-1px); }
+
+    /* ─── CTA FINAL ──────────────────────────────────── */
+    .cta-section {
+      padding: 100px 24px; text-align: center;
+      background: linear-gradient(160deg, var(--green) 0%, var(--green-light) 100%);
+      color: white;
+    }
+    .cta-section h2 {
+      font-size: clamp(28px, 5vw, 48px); font-weight: 800;
+      margin-bottom: 16px; letter-spacing: -0.5px;
+    }
+    .cta-section p { font-size: 18px; opacity: 0.85; margin-bottom: 40px; }
+    .cta-white {
+      background: white; color: var(--green);
+      border: none; border-radius: 14px;
+      padding: 18px 40px; font-size: 18px; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none; display: inline-block;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .cta-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+
+    /* ─── FOOTER ─────────────────────────────────────── */
+    footer {
+      background: var(--text); color: #8fa89a;
+      padding: 40px 24px; text-align: center;
+      font-size: 14px;
+    }
+    footer strong { color: white; }
+    footer a { color: #8fa89a; text-decoration: none; }
+    footer a:hover { color: white; }
+    .footer-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+    .feature-pro-badge {
+      background: var(--green);
+      color: white;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+    .hero-limits {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .hero-limits span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    @media (max-width: 600px) {
+      .hero { padding: 48px 20px 60px; }
+      .section { padding: 60px 20px; }
+      .features-section, .pricing-section { padding: 60px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <a href="/" class="logo">
+      <img src="/assets/logo.svg" alt="FridgeShot" width="28" height="28" style="border-radius:7px">
+      Fridge<span>Shot</span>
+    </a>
+    <a href="/app" class="cta-header">Abrir app →</a>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">✨ Empieza gratis · Sin tarjeta</div>
+    <h1>Foto de tu nevera<br><em>→ 3 recetas al instante</em></h1>
+    <p>FridgeShot analiza lo que tienes en casa con IA y te dice exactamente qué puedes cocinar ahora mismo. Sin ir al súper.</p>
+    <div class="hero-ctas">
+      <a href="/app" class="cta-primary">📸 Probar gratis ahora</a>
+      <a href="#precios" class="cta-secondary">Ver planes</a>
+    </div>
+    <div class="hero-limits">
+      <span>📸 3 análisis gratis / semana</span>
+      <span>🔒 Tus fotos no se guardan</span>
+      <span>📱 Funciona en móvil y PC</span>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <div id="como-funciona">
+    <div class="section">
+      <p class="section-label">Súper sencillo</p>
+      <h2>En 3 pasos tienes tus recetas</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="step-icon">📸</span>
+          <div class="step-num">1</div>
+          <h3>Haz una foto</h3>
+          <p>Abre la nevera o la despensa y haz hasta 5 fotos. Cuantas más, mejor detecta los ingredientes.</p>
+        </div>
+        <div class="step">
+          <span class="step-icon">🔍</span>
+          <div class="step-num">2</div>
+          <h3>La IA lo analiza</h3>
+          <p>En segundos, GPT-4o identifica todos los ingredientes y detecta qué está a punto de caducar.</p>
+        </div>
+        <div class="step">
+          <span class="step-icon">🍳</span>
+          <div class="step-num">3</div>
+          <h3>Cocina ahora</h3>
+          <p>Recibes 3 recetas personalizadas con lo que tienes. Modo paso a paso y chef IA incluidos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features-section">
+    <p class="section-label" style="text-align:center">Todo lo que incluye</p>
+    <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:48px;letter-spacing:-0.5px">Una app de cocina completa</h2>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">⚠️</div>
+        <div>
+          <h3>Detecta lo que caduca</h3>
+          <p>Prioriza los ingredientes que están a punto de echarse a perder para reducir el desperdicio.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🌡️</div>
+        <div>
+          <h3>AirFryer y Thermomix <span class="feature-pro-badge">Pro</span></h3>
+          <p>Recetas específicas con temperaturas exactas, tiempos y velocidades para cada electrodoméstico.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🥗</div>
+        <div>
+          <h3>Filtros de dieta</h3>
+          <p>Vegetariano, sin gluten, keto, sin lactosa — las recetas se adaptan a tus preferencias.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">👨‍🍳</div>
+        <div>
+          <h3>Chef IA en tiempo real <span class="feature-pro-badge">Pro</span></h3>
+          <p>¿Tienes una duda mientras cocinas? Pregúntale al chef y recibe respuesta al instante.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <div>
+          <h3>Funciona como app</h3>
+          <p>Instálala en tu móvil como cualquier app de la tienda. Sin descargar nada.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">❤️</div>
+        <div>
+          <h3>Guarda tus favoritas <span class="feature-pro-badge">Pro</span></h3>
+          <p>Guarda las recetas que más te gustan y accede a ellas desde cualquier dispositivo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES -->
+  <div class="use-cases">
+    <p class="section-label" style="text-align:center">Preguntas frecuentes</p>
+    <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:36px;letter-spacing:-0.5px">Todo lo que necesitas saber</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <h3>¿Cuántos análisis puedo hacer gratis?</h3>
+        <p>3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Tengo que registrarme para usarlo?</h3>
+        <p>No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Se guardan mis fotos?</h3>
+        <p>No. Las fotos se envían a la IA para analizar los ingredientes y se descartan inmediatamente. No las almacenamos.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Funciona en iPhone y Android?</h3>
+        <p>Sí. FridgeShot funciona en cualquier navegador moderno. También puedes instalarla como app en tu móvil desde el navegador, sin pasar por una tienda.</p>
+      </div>
+      <div class="faq-item">
+        <h3>¿Qué pasa si tengo pocos ingredientes?</h3>
+        <p>Funciona igual de bien. FridgeShot asume que tienes básicos como sal, aceite y especias comunes, y genera recetas con lo que realmente tienes.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRECIOS -->
+  <section class="pricing-section" id="precios">
+    <p class="section-label" style="text-align:center">Precios</p>
+    <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:12px;letter-spacing:-0.5px">Empieza gratis, mejora cuando quieras</h2>
+    <p style="text-align:center;color:var(--text-muted);font-size:15px;margin-bottom:48px">Sin permanencia · Cancela cuando quieras</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3>Gratis</h3>
+        <div class="pricing-price">0€ <span>/ siempre</span></div>
+        <p class="pricing-desc">Para descubrir FridgeShot a tu ritmo.</p>
+        <ul class="pricing-features">
+          <li>3 análisis de foto por semana</li>
+          <li>3 recetas por análisis</li>
+          <li>Cocina normal (sartén, horno...)</li>
+          <li>Modo paso a paso</li>
+          <li class="no">AirFryer y Thermomix</li>
+          <li class="no">Chef IA en tiempo real</li>
+          <li class="no">Recetas guardadas en la nube</li>
+        </ul>
+        <a href="/app" class="pricing-cta free">Empezar gratis</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">⭐ Más popular</div>
+        <h3>Pro</h3>
+        <div class="pricing-price">3,99€ <span>/ mes</span></div>
+        <p class="pricing-desc">Para sacar el máximo a FridgeShot cada semana.</p>
+        <ul class="pricing-features">
+          <li>Análisis ilimitados</li>
+          <li>AirFryer y Thermomix</li>
+          <li>Chef IA en tiempo real</li>
+          <li>Recetas guardadas en la nube</li>
+          <li>Historial de escaneos</li>
+          <li>Primero en nuevas funciones</li>
+        </ul>
+        <a href="/app" class="pricing-cta pro">Probar Pro gratis 7 días</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="cta-section">
+    <h2>¿Qué hay en tu nevera ahora mismo?</h2>
+    <p>Descúbrelo en 30 segundos. 3 análisis gratis esta semana, sin tarjeta.</p>
+    <a href="/app" class="cta-white">📸 Abrir FridgeShot gratis</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <strong>FridgeShot</strong> — Recetas con lo que tienes en la nevera
+    <div class="footer-links">
+      <a href="/app">Abrir app</a>
+      <a href="mailto:fridgeshotapp@gmail.com">Contacto</a>
+    </div>
+    <p style="margin-top:16px">© 2025 FridgeShot · Hecho con ❤️ en España</p>
+  </footer>
+
+</body>
+</html>
