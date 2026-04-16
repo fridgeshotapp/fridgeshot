@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python3:*)",
-      "Bash(npx vercel:*)",
-      "Bash(cp index.html app.html)"
-    ]
-  }
-}
