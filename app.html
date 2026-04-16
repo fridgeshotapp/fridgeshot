@@ -446,6 +446,21 @@
     .upload-zone .upload-sub { font-size: 14px; color: var(--text-muted); }
     #fileInputGallery, #fileInputCamera { display: none; }
 
+    .upload-tips { background: rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 16px; margin: 12px 0 4px; }
+    .upload-tips-title { font-size: 13px; font-weight: 600; opacity: 0.75; margin-bottom: 10px; }
+    .upload-tips-grid { display: flex; gap: 8px; }
+    .upload-tip-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 4px; font-size: 12px; opacity: 0.85; }
+    .upload-tip-item span:first-child { font-size: 24px; }
+
+    .upload-history-title { font-size: 13px; font-weight: 600; opacity: 0.65; margin: 18px 0 8px; }
+    .upload-history-card { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+    .upload-history-card:active { background: rgba(255,255,255,0.14); }
+    .upload-history-thumb { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px; }
+    .upload-history-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .upload-history-info { flex: 1; min-width: 0; }
+    .upload-history-date { font-size: 11px; opacity: 0.55; margin-bottom: 2px; }
+    .upload-history-ings { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     .divider {
       display: flex;
       align-items: center;
@@ -2335,6 +2350,20 @@
 
     <div id="uploadError" class="error-banner"></div>
 
+    <div class="upload-tips">
+      <div class="upload-tips-title">💡 ¿Qué fotografiar?</div>
+      <div class="upload-tips-grid">
+        <div class="upload-tip-item"><span>🧊</span><span>Nevera abierta</span></div>
+        <div class="upload-tip-item"><span>🗄️</span><span>Despensa</span></div>
+        <div class="upload-tip-item"><span>🥦</span><span>Ingredientes sueltos</span></div>
+      </div>
+    </div>
+
+    <div id="uploadHistorySection" style="display:none">
+      <div class="upload-history-title">🕐 Tus últimos análisis</div>
+      <div id="uploadHistoryList"></div>
+    </div>
+
     <div class="spacer"></div>
     <button class="btn-primary mt-24" id="analyzeBtn" disabled>Analizar <span id="analyzeBtnCount"></span> 🔍</button>
   </div>
@@ -3109,6 +3138,7 @@
 
     window.scrollTo(0, 0);
     if (name === 'setup') renderPantrySetupCard();
+    if (name === 'upload') renderUploadHistory();
     if (name === 'ingredients') showStarHintIfNeeded();
   }
 
@@ -4568,6 +4598,29 @@
     sessions.unshift(session);
     if (sessions.length > 5) sessions.pop();
     persistSessions(sessions);
+  }
+
+  function renderUploadHistory() {
+    const sessions = getSessions();
+    const section = document.getElementById('uploadHistorySection');
+    const list = document.getElementById('uploadHistoryList');
+    if (sessions.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    list.innerHTML = '';
+    sessions.slice(0, 3).forEach(session => {
+      const card = document.createElement('div');
+      card.className = 'upload-history-card';
+      card.onclick = () => loadSession(session);
+      card.innerHTML = `
+        <div class="upload-history-thumb">${session.thumbnail ? `<img src="${escapeHtml(session.thumbnail)}" alt="">` : '🧊'}</div>
+        <div class="upload-history-info">
+          <div class="upload-history-date">${escapeHtml(session.date)} · ${session.photoCount} foto${session.photoCount > 1 ? 's' : ''}</div>
+          <div class="upload-history-ings">${escapeHtml(session.ingredients.slice(0, 4).join(', '))}${session.ingredients.length > 4 ? '…' : ''}</div>
+        </div>
+        <span style="opacity:0.4;font-size:18px">›</span>
+      `;
+      list.appendChild(card);
+    });
   }
 
   function showHistoryScreen() {
