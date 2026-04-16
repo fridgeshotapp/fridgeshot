@@ -2350,6 +2350,10 @@
 
     <div id="uploadError" class="error-banner"></div>
 
+    <button class="btn-secondary" style="margin-top:4px;opacity:0.75" onclick="goManual()">
+      ✏️ Añadir ingredientes a mano
+    </button>
+
     <div class="upload-tips">
       <div class="upload-tips-title">💡 ¿Qué fotografiar?</div>
       <div class="upload-tips-grid">
@@ -4687,6 +4691,20 @@
     document.getElementById('fileInputGallery').value = '';
     document.getElementById('fileInputCamera').value = '';
     showScreen('upload');
+  }
+
+  function goManual() {
+    state.images = [];
+    state.photosAnalysis = [];
+    state.ingredients = [];
+    state.expiringIngredients = [];
+    state.mustInclude = [];
+    state.recipes = [];
+    renderIngredients();
+    renderPantryInIngredients();
+    renderPhotoGallery();
+    showScreen('ingredients');
+    setTimeout(() => document.getElementById('newIngredient')?.focus(), 400);
   }
 
   // ─────────────────────────────────────────────────────────
