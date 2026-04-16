@@ -64,17 +64,6 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Pro users tienen análisis ilimitados
-  const pro = await isProUser(req);
-  if (!pro) {
-    const allowed = await rateLimit(
-      req, res,
-      'analyze', 3, '7 d',
-      'Has alcanzado el límite de 3 análisis semanales del plan gratis. Actualiza a Pro para análisis ilimitados.'
-    );
-    if (!allowed) return;
-  }
-
   if (!req.body || typeof req.body !== 'object') {
     return res.status(400).json({ error: 'Cuerpo de la petición inválido' });
   }

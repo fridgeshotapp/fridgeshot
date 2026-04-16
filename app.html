@@ -2279,12 +2279,12 @@
       <div class="appliance-option appliance-opt" data-appliance="airfryer" id="applianceAirfryer">
         <span class="appliance-icon">🌬️</span>
         <span class="appliance-label">Air Fryer</span>
-        <span class="pro-lock-label" id="lockAirfryer">PRO</span>
+        <span class="pro-lock-label" id="lockAirfryer" style="display:none">PRO</span>
       </div>
       <div class="appliance-option appliance-opt" data-appliance="thermomix" id="applianceThermomix">
         <span class="appliance-icon">🤖</span>
         <span class="appliance-label">Thermomix</span>
-        <span class="pro-lock-label" id="lockThermomix">PRO</span>
+        <span class="pro-lock-label" id="lockThermomix" style="display:none">PRO</span>
       </div>
     </div>
 
@@ -2526,7 +2526,7 @@
     </div>
 
     <div id="detailContent"></div>
-    <button class="chat-trigger-btn" onclick="proGate('chat', openChat)">💬 Pregunta al chef <span id="chatProBadge" style="font-size:10px;background:rgba(255,255,255,0.25);border-radius:4px;padding:1px 6px;margin-left:4px;display:none">PRO</span></button>
+    <button class="chat-trigger-btn" onclick="proGate('chat', openChat)">💬 Pregunta al chef</button>
   </div>
 
   <!-- Chat drawer -->
@@ -2637,7 +2637,7 @@
         <span class="pro-status-label">⭐ Plan Pro activo</span>
         <button class="pro-status-manage" onclick="openBillingPortal()">Gestionar</button>
       </div>
-      <div id="freeStatusRow" style="margin-bottom:16px">
+      <div id="freeStatusRow" style="display:none;margin-bottom:16px">
         <button class="auth-primary-btn" onclick="closeAuthModal(); openProModal()">⭐ Hazte Pro — 7 días gratis</button>
       </div>
       <div class="auth-divider"></div>
@@ -2867,7 +2867,7 @@
   }
 
   function proGate(feature, callback) {
-    if (_isPro) { callback(); return; }
+    callback(); return;
     const reasons = {
       chat: '¿Tienes una duda mientras cocinas? El Chef IA es exclusivo de Pro.',
       save: 'Guarda tus recetas favoritas en la nube con FridgeShot Pro.',
@@ -2938,11 +2938,6 @@
     document.querySelectorAll('.appliance-opt').forEach(opt => {
       opt.addEventListener('click', () => {
         const val = opt.dataset.appliance;
-        if ((val === 'airfryer' || val === 'thermomix') && !_isPro) {
-          const name = val === 'airfryer' ? 'Air Fryer' : 'Thermomix';
-          openProModal(`Las recetas para ${name} son exclusivas de Pro. ¡Pruébalo 7 días gratis!`);
-          return;
-        }
         state.appliance = (val !== 'ninguno' && opt.classList.contains('selected'))
           ? 'ninguno' : val;
         document.querySelectorAll('.appliance-opt').forEach(o =>
