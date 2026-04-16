@@ -227,8 +227,7 @@
     }
     .ing-row:last-child { border-bottom: none; }
     .ing-row--expiring {
-      background: #fff8f4;
-      border-left-color: var(--orange);
+      display: none;
     }
     .ing-row-main { flex: 1; min-width: 0; }
     .ing-name {
@@ -248,6 +247,7 @@
       margin-top: 3px;
     }
     .ing-expire-btn {
+      display: none;
       font-size: 12px;
       font-weight: 600;
       padding: 5px 11px;
@@ -2921,7 +2921,6 @@
     photosAnalysis: [],       // [{ photo_index, items: [{ name, bbox? }] }]
     detectedBrands: [],       // [{ ingredient, brand, store }]
     ingredients: [],
-    expiringIngredients: [],
     mustInclude: [],
     recipes: [],
     currentRecipeIndex: null
@@ -3357,14 +3356,12 @@
 
       stopLoading();
       state.ingredients = deduplicateIngredients(data.all_ingredients || []);
-      state.expiringIngredients = data.possibly_expiring || [];
       state.detectedBrands = data.detected_brands || [];
       state.photosAnalysis = data.photos_analysis || [];
 
       posthog.capture('photo_analyzed', {
         photo_count: imagesBase64.length,
-        ingredients_found: state.ingredients.length,
-        expiring_found: state.expiringIngredients.length
+        ingredients_found: state.ingredients.length
       });
 
       renderIngredients();
@@ -3406,15 +3403,11 @@
       ? `Preferencias dietéticas: ${state.dietPrefs.join(', ')}.`
       : 'Sin restricciones dietéticas.';
 
-    const expireText = state.expiringIngredients.length > 0
-      ? `IMPORTANTE: Prioriza usar estos ingredientes que pueden caducar pronto: ${state.expiringIngredients.join(', ')}.`
-      : '';
 
     try {
       const pantry = getPantry();
       const data = await callRecipes({
         ingredients: deduplicateIngredients([...state.ingredients, ...pantry]),
-        expiringIngredients: state.expiringIngredients,
         mustInclude: state.mustInclude,
         dietPrefs: state.dietPrefs,
         timeLimits: state.timeLimits,
@@ -3511,7 +3504,6 @@
     const addRow = list.querySelector('.ing-add-row');
 
     state.ingredients.forEach((ing, i) => {
-      const isExpiring = state.expiringIngredients.includes(ing);
       const brandInfo = state.detectedBrands.find(
         b => b.ingredient.toLowerCase() === ing.toLowerCase()
       );
@@ -3526,7 +3518,7 @@
 
       const isMust = state.mustInclude.includes(ing);
       const row = document.createElement('div');
-      row.className = 'ing-row' + (isExpiring ? ' ing-row--expiring' : '');
+      row.className = 'ing-row';
       row.dataset.index = i;
       row.innerHTML = `
         <button class="ing-must-btn${isMust ? ' active' : ''}"
@@ -3536,34 +3528,11 @@
           <span class="ing-name">${escapeHtml(ing)}</span>
           ${brandHtml}
         </div>
-        <button class="ing-expire-btn${isExpiring ? ' active' : ''}"
-                onclick="toggleExpire(${i})"
-                title="Marcar como próximo a caducar">
-          ${isExpiring ? '⚠️ Caduca' : 'Caduca'}
-        </button>
         <button class="ing-remove-btn" onclick="removeIngredient(${i})" title="Eliminar">✕</button>
       `;
       list.insertBefore(row, addRow);
     });
 
-    updateExpireNote();
-  }
-
-  function toggleExpire(index) {
-    const ing = state.ingredients[index];
-    if (state.expiringIngredients.includes(ing)) {
-      state.expiringIngredients = state.expiringIngredients.filter(e => e !== ing);
-    } else {
-      state.expiringIngredients.push(ing);
-    }
-    const isExpiring = state.expiringIngredients.includes(ing);
-    const row = document.querySelector(`.ing-row[data-index="${index}"]`);
-    if (row) {
-      row.className = 'ing-row' + (isExpiring ? ' ing-row--expiring' : '');
-      const btn = row.querySelector('.ing-expire-btn');
-      btn.className = 'ing-expire-btn' + (isExpiring ? ' active' : '');
-      btn.textContent = isExpiring ? '⚠️ Caduca' : 'Caduca';
-    }
     updateExpireNote();
   }
 
@@ -3610,15 +3579,12 @@
 
   function removeIngredient(index) {
     const ing = state.ingredients[index];
-    const wasExpiring = state.expiringIngredients.includes(ing);
     const wasMust = state.mustInclude.includes(ing);
     state.ingredients.splice(index, 1);
-    state.expiringIngredients = state.expiringIngredients.filter(e => e !== ing);
     state.mustInclude = state.mustInclude.filter(e => e !== ing);
     renderIngredients();
     showUndoToast(`"${ing}" eliminado`, () => {
       state.ingredients.splice(index, 0, ing);
-      if (wasExpiring) state.expiringIngredients.push(ing);
       if (wasMust) state.mustInclude.push(ing);
       renderIngredients();
     });
@@ -3640,16 +3606,9 @@
     const btn = document.getElementById('generateBtn');
     if (!btn) return;
     const hasMust = state.mustInclude.length > 0;
-    const hasExpire = state.expiringIngredients.length > 0;
-    if (hasMust && hasExpire) {
-      btn.textContent = 'Generar recetas ★⚠️';
-      btn.title = `Incluir sí o sí: ${state.mustInclude.join(', ')} | Priorizando: ${state.expiringIngredients.join(', ')}`;
-    } else if (hasMust) {
+    if (hasMust) {
       btn.textContent = 'Generar recetas ★';
       btn.title = `Incluir sí o sí: ${state.mustInclude.join(', ')}`;
-    } else if (hasExpire) {
-      btn.textContent = 'Generar recetas ⚠️';
-      btn.title = `Se priorizarán: ${state.expiringIngredients.join(', ')}`;
     } else {
       btn.textContent = 'Generar recetas 🍽️';
       btn.title = '';
@@ -3885,7 +3844,6 @@
       const pantry = getPantry();
       const data = await callRecipes({
         ingredients: deduplicateIngredients([...state.ingredients, ...pantry]),
-        expiringIngredients: state.expiringIngredients,
         mustInclude: state.mustInclude,
         dietPrefs: state.dietPrefs,
         timeLimits: state.timeLimits,
@@ -4595,7 +4553,6 @@
       photoCount: state.images.length,
       thumbnail,
       ingredients: [...state.ingredients],
-      expiringIngredients: [...state.expiringIngredients],
       recipes: []   // recipes added later when generated
     };
     // Remove oldest if >5
@@ -4668,7 +4625,6 @@
 
   function loadSession(session) {
     state.ingredients = [...session.ingredients];
-    state.expiringIngredients = [...session.expiringIngredients];
     state.mustInclude = [];
     state.images = [];
     state.photosAnalysis = [];
@@ -4683,7 +4639,6 @@
     state.images = [];
     state.photosAnalysis = [];
     state.ingredients = [];
-    state.expiringIngredients = [];
     state.mustInclude = [];
     state.recipes = [];
     renderPhotoGrid();
@@ -4697,7 +4652,6 @@
     state.images = [];
     state.photosAnalysis = [];
     state.ingredients = [];
-    state.expiringIngredients = [];
     state.mustInclude = [];
     state.recipes = [];
     renderIngredients();

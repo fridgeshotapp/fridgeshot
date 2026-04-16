@@ -31,15 +31,13 @@ Reglas:
 1. Lista TODOS los ingredientes, alimentos y bebidas visibles en cualquiera de las fotos.
 2. Si el mismo ingrediente aparece en varias fotos, inclúyelo UNA SOLA VEZ en "all_ingredients".
 3. Para cada foto, indica qué items detectaste y su posición aproximada como bounding box.
-4. Detecta cuáles ingredientes parecen estar cerca de caducar (verduras marchitas, frutas muy maduras, envases abiertos, etc.).
-5. Si en algún envase o producto ves claramente la marca o la cadena de supermercado (ej: Hacendado→Mercadona, marca Carrefour, Lidl/Freshona/Milbona, Dia, Auchan→Alcampo, marca El Corte Inglés, marcas como Danone, Nestlé, Bimbo, La Lechera, Presidente, etc.), inclúyelo en "detected_brands". Solo incluye marcas que puedas identificar con seguridad por el envase.
+4. Si en algún envase o producto ves claramente la marca o la cadena de supermercado (ej: Hacendado→Mercadona, marca Carrefour, Lidl/Freshona/Milbona, Dia, Auchan→Alcampo, marca El Corte Inglés, marcas como Danone, Nestlé, Bimbo, La Lechera, Presidente, etc.), inclúyelo en "detected_brands". Solo incluye marcas que puedas identificar con seguridad por el envase.
 
 Las coordenadas del bounding box van de 0 a 999 ([0,0] = esquina superior-izquierda, [999,999] = inferior-derecha de cada foto).
 
 Responde SOLO con este JSON, sin texto adicional:
 {
   "all_ingredients": ["ingrediente1", "ingrediente2"],
-  "possibly_expiring": ["ingrediente que puede caducar"],
   "detected_brands": [
     { "ingredient": "leche", "brand": "Hacendado", "store": "Mercadona" }
   ],
@@ -150,7 +148,6 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       all_ingredients: content.all_ingredients || [],
-      possibly_expiring: content.possibly_expiring || [],
       detected_brands: content.detected_brands || [],
       photos_analysis: content.photos_analysis || []
     });

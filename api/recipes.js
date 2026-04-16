@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Cuerpo de la petición inválido' });
   }
 
-  const { ingredients, expiringIngredients, mustInclude, dietPrefs, timeLimits, servingsOptions, mealTypes, appliance, count, excludeNames } = req.body;
+  const { ingredients, mustInclude, dietPrefs, timeLimits, servingsOptions, mealTypes, appliance, count, excludeNames } = req.body;
 
   if (!ingredients || ingredients.length === 0) {
     return res.status(400).json({ error: 'Se necesita al menos un ingrediente' });
@@ -102,10 +102,6 @@ module.exports = async function handler(req, res) {
   const dietText = dietPrefs && dietPrefs.length > 0
     ? `Preferencias dietéticas: ${dietPrefs.join(', ')}.`
     : 'Sin restricciones dietéticas.';
-
-  const expireText = expiringIngredients && expiringIngredients.length > 0
-    ? `IMPORTANTE: Prioriza usar estos ingredientes que pueden caducar pronto: ${expiringIngredients.join(', ')}.`
-    : '';
 
   const times = Array.isArray(timeLimits) && timeLimits.length > 0 ? timeLimits.sort((a,b)=>a-b) : [30];
   const maxTime = times[times.length-1];
@@ -156,7 +152,6 @@ module.exports = async function handler(req, res) {
 
   const prompt = `${spoonacularContext}Soy un chef casero y tengo estos ingredientes en casa: ${ingredients.join(', ')}.
 
-${expireText}
 ${excludeText}
 ${mustIncludeText}
 ${dietText}
