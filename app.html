@@ -782,6 +782,15 @@
     }
     .recipe-change-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+    /* ─── RECIPE PHOTO ────────────────────────────────────── */
+    .recipe-photo-banner { position: relative; width: 100%; height: 190px; background: rgba(255,255,255,0.07); border-radius: 14px; margin-bottom: 14px; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255,255,255,0.2); }
+    .recipe-photo-banner img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+    .recipe-photo-banner-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.55; pointer-events: none; }
+    .recipe-photo-banner-empty span:first-child { font-size: 36px; }
+    .recipe-photo-banner-empty span:last-child { font-size: 13px; }
+    .recipe-photo-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.55); color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+    .saved-card-thumb { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; flex-shrink: 0; margin-right: 4px; }
+
     /* ─── RECIPE DETAIL ───────────────────────────────────── */
     .recipe-detail-header {
       background: var(--green);
@@ -2558,6 +2567,8 @@
       <button class="settings-btn" onclick="shareCurrentRecipe()" title="Compartir">↗️</button>
     </div>
 
+    <div id="recipePhotoSection"></div>
+    <input type="file" id="recipePhotoInput" accept="image/*" style="display:none" onchange="handleRecipePhotoFile(this.files[0]);this.value=''">
     <div id="detailContent"></div>
     <button class="chat-trigger-btn" onclick="proGate('chat', openChat)">💬 Pregunta al chef</button>
   </div>
@@ -3972,6 +3983,7 @@
 
     // Update save heart in header
     document.getElementById('detailSaveBtn').textContent = isSaved(recipe) ? '❤️' : '🤍';
+    renderRecipePhotoSection(recipe.name);
 
     showScreen('detail');
     requestWakeLock();
@@ -4160,11 +4172,51 @@
   function isSaved(recipe) {
     return getSavedRecipes().some(r => r.name === recipe.name);
   }
+  // ─── RECIPE PHOTOS ──────────────────────────────────────
+  function getRecipePhotos() { return JSON.parse(localStorage.getItem('fridgeshot_recipe_photos') || '{}'); }
+  function getRecipePhoto(name) { return getRecipePhotos()[name] || null; }
+  function saveRecipePhotoData(name, base64) {
+    const p = getRecipePhotos(); p[name] = base64;
+    localStorage.setItem('fridgeshot_recipe_photos', JSON.stringify(p));
+  }
+  function openRecipePhotoPicker() { document.getElementById('recipePhotoInput').click(); }
+  function handleRecipePhotoFile(file) {
+    if (!file || state.currentRecipeIndex === null) return;
+    const name = state.recipes[state.currentRecipeIndex].name;
+    resizeImage(file, 900).then(base64 => {
+      saveRecipePhotoData(name, base64);
+      renderRecipePhotoSection(name);
+      renderSavedList();
+    });
+  }
+  function renderRecipePhotoSection(recipeName) {
+    const container = document.getElementById('recipePhotoSection');
+    if (!container) return;
+    if (!isSaved({ name: recipeName })) { container.innerHTML = ''; return; }
+    const photo = getRecipePhoto(recipeName);
+    if (photo) {
+      container.innerHTML = `
+        <div class="recipe-photo-banner" onclick="openRecipePhotoPicker()">
+          <img src="data:image/jpeg;base64,${photo}" alt="Foto del plato">
+          <button class="recipe-photo-change" onclick="event.stopPropagation();openRecipePhotoPicker()">📸 Cambiar foto</button>
+        </div>`;
+    } else {
+      container.innerHTML = `
+        <div class="recipe-photo-banner" onclick="openRecipePhotoPicker()">
+          <div class="recipe-photo-banner-empty">
+            <span>📸</span>
+            <span>Añade una foto de tu plato</span>
+          </div>
+        </div>`;
+    }
+  }
+
   function toggleSaveCurrentRecipe() {
     if (state.currentRecipeIndex === null) return;
     const recipe = state.recipes[state.currentRecipeIndex];
     toggleSave(recipe);
     document.getElementById('detailSaveBtn').textContent = isSaved(recipe) ? '❤️' : '🤍';
+    renderRecipePhotoSection(recipe.name);
   }
   function toggleSaveByIndex(index, btn) {
     const recipe = state.recipes[index];
@@ -4228,16 +4280,21 @@
           : recipe.difficulty === 'difícil' ? 'badge-diff-hard' : 'badge-diff-medium';
         const card = document.createElement('div');
         card.className = 'recipe-card';
+        const savedPhoto = getRecipePhoto(recipe.name);
+        const thumbHtml = savedPhoto ? `<img class="saved-card-thumb" src="data:image/jpeg;base64,${savedPhoto}" alt="">` : '';
         card.innerHTML = `
           <div class="recipe-card-top">
-            <div class="recipe-name">${escapeHtml(recipe.name)}</div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <span class="badge badge-time">⏱️ ${recipe.time_minutes} min</span>
+            ${thumbHtml}
+            <div style="flex:1;min-width:0">
+              <div class="recipe-name">${escapeHtml(recipe.name)}</div>
+              <div class="recipe-key-ingredients">${(recipe.key_ingredients || []).map(k => escapeHtml(k)).join(' · ')}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
               <button class="save-btn" onclick="event.stopPropagation();removeSavedByName('${escapeHtml(recipe.name)}',this)" title="Eliminar">❤️</button>
+              <span class="badge badge-time">⏱️ ${recipe.time_minutes} min</span>
             </div>
           </div>
           <div class="recipe-meta"><span class="badge ${diffClass}">${escapeHtml(recipe.difficulty)}</span></div>
-          <div class="recipe-key-ingredients">${(recipe.key_ingredients || []).map(k => escapeHtml(k)).join(' · ')}</div>
         `;
         list.appendChild(card);
       });
