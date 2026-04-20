@@ -1,4 +1,4 @@
-const CACHE = 'fridgeshot-v5';
+const CACHE = 'fridgeshot-v6';
 const STATIC = ['/app', '/logo.svg', '/favicon.svg', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -24,6 +24,12 @@ self.addEventListener('fetch', e => {
         )
       )
     );
+    return;
+  }
+
+  // HTML: siempre red primero para evitar servir versiones viejas
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
 

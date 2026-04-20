@@ -2106,6 +2106,7 @@
     .pro-status-manage { font-size: 12px; color: var(--green); text-decoration: underline; cursor: pointer; background: none; border: none; font-family: inherit; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async></script>
   <script>
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
     posthog.init('phc_yoR4Z9wD2moKZKKvdYsan9dmuyut74crAVxyeAidonKF', {
@@ -2667,10 +2668,7 @@
     <div id="authFormView">
       <h3>Bienvenido 👋</h3>
       <p>Guarda tus recetas en la nube y accede desde cualquier dispositivo.</p>
-      <button class="auth-primary-btn" id="authGoogleBtn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;">
-        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-        Continuar con Google
-      </button>
+      <div id="googleBtnContainer" style="display:flex;justify-content:center;min-height:44px;margin-bottom:4px"></div>
       <button class="auth-secondary-btn" onclick="closeAuthModal()">Ahora no</button>
     </div>
     <div id="authSentView" style="display:none"></div>
@@ -2706,6 +2704,7 @@
     _currentUser = session?.user || null;
     updateAuthUI();
     if (event === 'SIGNED_IN') {
+      closeAuthModal();
       posthog.identify(_currentUser.id, { email: _currentUser.email });
       posthog.capture('user_signed_in', { provider: _currentUser.app_metadata?.provider });
       showToast('¡Sesión iniciada! Sincronizando... ☁️');
@@ -2722,7 +2721,10 @@
   _supabase.auth.getSession().then(({ data: { session } }) => {
     _currentUser = session?.user || null;
     updateAuthUI();
-    if (_currentUser) loadProStatus();
+    if (_currentUser) {
+      loadProStatus();
+      syncAndLoadCloud();
+    }
   });
 
   function updateAuthUI() {
@@ -2754,19 +2756,27 @@
     document.getElementById('authOverlay').classList.remove('show');
   }
 
-  async function signInWithGoogle() {
-    const btn = document.getElementById('authGoogleBtn');
-    btn.disabled = true;
-    btn.textContent = 'Conectando...';
-    const { error } = await _supabase.auth.signInWithOAuth({
+  function initGoogleAuth() {
+    google.accounts.id.initialize({
+      client_id: '511262334606-s3ir5buq4b4t7mto3robu2ppevodpn3s.apps.googleusercontent.com',
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('googleBtnContainer'),
+      { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', width: 280, locale: 'es' }
+    );
+  }
+
+  async function handleGoogleCredential({ credential }) {
+    const { error } = await _supabase.auth.signInWithIdToken({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/app' }
+      token: credential
     });
     if (error) {
       showToast('Error al conectar con Google. Inténtalo de nuevo.');
       console.error('Auth error:', error);
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg> Continuar con Google';
     }
   }
 
@@ -2801,6 +2811,7 @@
           key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
           steps: r.steps || [], appliance: r.appliance, savedAt: r.created_at
         })));
+        renderSavedList();
       }
       // Sincronizar preferencias y despensa
       const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
@@ -2810,6 +2821,23 @@
         meal_types: prefs.mealTypes || [], diet_prefs: prefs.dietPrefs || [],
         appliance: prefs.appliance || 'ninguno', pantry_items: getPantry()
       });
+      // Restaurar preferencias y despensa desde la nube
+      const { data: cloudPrefs } = await _supabase
+        .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
+      if (cloudPrefs) {
+        localStorage.setItem('fridgeshot_prefs', JSON.stringify({
+          timeLimits: cloudPrefs.time_limits || [30],
+          servingsOptions: cloudPrefs.servings_options || [2],
+          mealTypes: cloudPrefs.meal_types || [],
+          dietPrefs: cloudPrefs.diet_prefs || [],
+          appliance: cloudPrefs.appliance || 'ninguno'
+        }));
+        if (cloudPrefs.pantry_items?.length > 0) {
+          localStorage.setItem('fridgeshot_pantry', JSON.stringify(cloudPrefs.pantry_items));
+          renderPantryScreen();
+          renderPantryInIngredients();
+        }
+      }
       showToast('¡Datos sincronizados! ☁️');
     } catch (e) {
       console.error('Error de sincronización:', e);
@@ -3192,7 +3220,9 @@
   }
 
   function processFile(file) {
-    if (!file.type.startsWith('image/')) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isHeic = ext === 'heic' || ext === 'heif';
+    if (!file.type.startsWith('image/') && !isHeic) {
       showError('uploadError', 'Por favor sube una imagen (JPG, PNG, HEIC).');
       return;
     }
@@ -3215,6 +3245,12 @@
       entry.preview = evt.target.result;
       renderPhotoGrid();                      // show thumbnail immediately
       entry.base64 = await resizeImage(file, 1024);
+      if (!entry.base64) {
+        state.images = state.images.filter(img => img.id !== entry.id);
+        renderPhotoGrid();
+        showError('uploadError', 'No se pudo procesar esta imagen. Prueba con JPG o PNG.');
+        return;
+      }
       updateAnalyzeBtn();                     // enable once base64 is ready
     };
     reader.readAsDataURL(file);
@@ -3429,6 +3465,7 @@
 
       stopLoading();
       state.recipes = data.recipes || [];
+      updateSessionWithRecipes(state.recipes);
 
       posthog.capture('recipes_generated', {
         recipe_count: state.recipes.length,
@@ -3463,8 +3500,9 @@
       body: JSON.stringify({ imagesBase64 })
     });
     if (!res.ok) {
+      if (res.status === 429) throw new Error('Has alcanzado el límite de análisis por hoy. Vuelve mañana o espera un momento.');
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw new Error(err.error || 'Error al conectar con el servidor.');
     }
     return res.json();
   }
@@ -3476,8 +3514,9 @@
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
+      if (res.status === 429) throw new Error('Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.');
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw new Error(err.error || 'Error al conectar con el servidor.');
     }
     return res.json();
   }
@@ -3502,6 +3541,7 @@
         URL.revokeObjectURL(url);
         resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
       };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       img.src = url;
     });
   }
@@ -3662,26 +3702,16 @@
       img.alt = 'Foto ' + (photoIdx + 1);
       img.src = imgEntry.preview;
 
+      const canvas = document.createElement('canvas');
+      img.onload = () => drawBoundingBoxes(canvas, img, photoIdx);
+
       const footer = document.createElement('div');
       footer.className = 'photo-gallery-footer';
       footer.textContent = 'Foto ' + (photoIdx + 1);
 
       item.appendChild(img);
+      item.appendChild(canvas);
       item.appendChild(footer);
-
-      // Lista de ingredientes detectados en esta foto
-      const photoData = state.photosAnalysis.find(p => p.photo_index === photoIdx);
-      if (photoData && Array.isArray(photoData.items) && photoData.items.length > 0) {
-        const list = document.createElement('div');
-        list.className = 'photo-items-list';
-        photoData.items.forEach(it => {
-          const tag = document.createElement('span');
-          tag.className = 'photo-item-tag';
-          tag.textContent = it.name;
-          list.appendChild(tag);
-        });
-        item.appendChild(list);
-      }
 
       scroll.appendChild(item);
     });
@@ -4184,6 +4214,7 @@
     if (!file || state.currentRecipeIndex === null) return;
     const name = state.recipes[state.currentRecipeIndex].name;
     resizeImage(file, 900).then(base64 => {
+      if (!base64) { showToast('No se pudo procesar la imagen. Prueba con JPG o PNG.'); return; }
       saveRecipePhotoData(name, base64);
       renderRecipePhotoSection(name);
       renderSavedList();
@@ -4336,12 +4367,14 @@
       ...(recipe.steps || []).map((s, i) => `${i + 1}. ${s.replace(/^Paso \d+:\s*/i, '')}`)
     ].join('\n');
 
+    const copyToClipboard = () => navigator.clipboard.writeText(text)
+      .then(() => showToast('Receta copiada al portapapeles 📋'))
+      .catch(() => showToast('No se pudo copiar la receta.'));
+
     if (navigator.share) {
-      navigator.share({ title: recipe.name, text }).catch(() => {});
+      navigator.share({ title: recipe.name, text }).catch(copyToClipboard);
     } else {
-      navigator.clipboard.writeText(text)
-        .then(() => showToast('Receta copiada al portapapeles 📋'))
-        .catch(() => showToast('No se pudo copiar'));
+      copyToClipboard();
     }
   }
 
@@ -4441,6 +4474,16 @@
   }
   function persistPantry(arr) {
     localStorage.setItem('fridgeshot_pantry', JSON.stringify(arr));
+    if (_currentUser) syncPantryToCloud(arr);
+  }
+
+  async function syncPantryToCloud(pantryItems) {
+    try {
+      await _supabase.from('user_preferences').upsert({
+        user_id: _currentUser.id,
+        pantry_items: pantryItems
+      }, { onConflict: 'user_id' });
+    } catch (e) { console.error('Error sincronizando despensa:', e); }
   }
 
   function showPantryScreen() {
@@ -4615,6 +4658,13 @@
     // Remove oldest if >5
     sessions.unshift(session);
     if (sessions.length > 5) sessions.pop();
+    persistSessions(sessions);
+  }
+
+  function updateSessionWithRecipes(recipes) {
+    const sessions = getSessions();
+    if (sessions.length === 0) return;
+    sessions[0].recipes = recipes.map(r => ({ name: r.name, time_minutes: r.time_minutes, difficulty: r.difficulty }));
     persistSessions(sessions);
   }
 
@@ -4918,17 +4968,28 @@
   }
 
   async function callChat(recipe, messages, userMessage) {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipe, messages, userMessage })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipe, messages, userMessage }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (!res.ok) {
+        if (res.status === 429) throw new Error('Demasiados mensajes seguidos. Espera un momento.');
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Error al conectar con el chef IA.');
+      }
+      const data = await res.json();
+      return data.reply;
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') throw new Error('La respuesta tardó demasiado. Inténtalo de nuevo.');
+      throw e;
     }
-    const data = await res.json();
-    return data.reply;
   }
 
   // iOS Safari: show manual hint if not installed and not dismissed
