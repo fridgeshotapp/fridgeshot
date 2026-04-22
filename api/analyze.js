@@ -63,6 +63,14 @@ module.exports = withSentry(async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Rate limit: 10 análisis de foto por IP al día (protección de costes OpenAI)
+  const allowed = await rateLimit(
+    req, res,
+    'analyze', 10, '1 d',
+    'Has alcanzado el límite de análisis por hoy. Vuelve mañana o hazte Pro para análisis ilimitados.'
+  );
+  if (!allowed) return;
+
   if (!req.body || typeof req.body !== 'object') {
     return res.status(400).json({ error: 'Cuerpo de la petición inválido' });
   }
