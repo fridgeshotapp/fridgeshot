@@ -33,7 +33,7 @@
       "name": "Nueva foto",
       "short_name": "Foto",
       "description": "Analiza tu nevera ahora",
-      "url": "/",
+      "url": "/app",
       "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]

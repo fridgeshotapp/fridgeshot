@@ -2111,12 +2111,43 @@
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
     posthog.init('phc_yoR4Z9wD2moKZKKvdYsan9dmuyut74crAVxyeAidonKF', {
       api_host: 'https://eu.i.posthog.com',
-      person_profiles: 'always'
+      person_profiles: 'always',
+      opt_out_capturing_by_default: true
     });
+    if (localStorage.getItem('cookie_consent') === '1') {
+      posthog.opt_in_capturing();
+    }
   </script>
 </head>
 <body>
 <div id="app">
+
+  <!-- Cookie consent banner -->
+  <div id="cookie-consent-bar" style="
+    display:none; position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:480px;
+    background:#1B2D24; color:#d8f3dc; padding:14px 16px;
+    z-index:10000; font-size:12px;
+    align-items:center; gap:10px; flex-wrap:wrap;
+    box-shadow:0 -4px 16px rgba(0,0,0,0.25);
+  ">
+    <p style="margin:0;flex:1;min-width:180px;line-height:1.4">
+      Usamos cookies analíticas para mejorar la app.
+      <a href="/privacidad" style="color:#74c69d;font-weight:600">Saber más</a>
+    </p>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button id="cookie-reject-btn" style="
+        background:transparent;border:1px solid #74c69d;color:#74c69d;
+        border-radius:8px;padding:7px 12px;font-size:11px;font-weight:600;
+        cursor:pointer;font-family:inherit;
+      ">Rechazar</button>
+      <button id="cookie-accept-btn" style="
+        background:#40916C;border:none;color:white;
+        border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;
+        cursor:pointer;font-family:inherit;
+      ">Aceptar</button>
+    </div>
+  </div>
 
   <!-- PWA install banner -->
   <div class="install-banner" id="installBanner">
@@ -2685,6 +2716,13 @@
       <div class="auth-divider"></div>
       <button class="auth-primary-btn" style="background:#E63946" onclick="logOut()">Cerrar sesión</button>
       <button class="auth-secondary-btn" onclick="closeAuthModal()">Cancelar</button>
+      <div style="margin-top:16px;text-align:center;font-size:12px;color:var(--text-muted)">
+        <a href="/privacidad" style="color:var(--text-muted);text-decoration:underline">Privacidad</a>
+        &nbsp;·&nbsp;
+        <a href="/terminos" style="color:var(--text-muted);text-decoration:underline">Términos</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:fridgeshotapp@gmail.com" style="color:var(--text-muted);text-decoration:underline">Contacto</a>
+      </div>
     </div>
   </div>
 </div>
@@ -4991,6 +5029,24 @@
       throw e;
     }
   }
+
+  // Cookie consent
+  (function() {
+    const consent = localStorage.getItem('cookie_consent');
+    const bar = document.getElementById('cookie-consent-bar');
+    if (!consent) {
+      bar.style.display = 'flex';
+      document.getElementById('cookie-accept-btn').addEventListener('click', function() {
+        localStorage.setItem('cookie_consent', '1');
+        bar.style.display = 'none';
+        posthog.opt_in_capturing();
+      });
+      document.getElementById('cookie-reject-btn').addEventListener('click', function() {
+        localStorage.setItem('cookie_consent', '0');
+        bar.style.display = 'none';
+      });
+    }
+  })();
 
   // iOS Safari: show manual hint if not installed and not dismissed
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);

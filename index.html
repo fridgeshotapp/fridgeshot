@@ -378,7 +378,7 @@
           <span class="step-icon">🔍</span>
           <div class="step-num">2</div>
           <h3>La IA lo analiza</h3>
-          <p>En segundos, GPT-4o identifica todos los ingredientes y detecta qué está a punto de caducar.</p>
+          <p>En segundos, GPT-4o identifica todos los ingredientes visibles. Cuantas más fotos, más preciso.</p>
         </div>
         <div class="step">
           <span class="step-icon">🍳</span>
@@ -396,10 +396,10 @@
     <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:48px;letter-spacing:-0.5px">Una app de cocina completa</h2>
     <div class="features-grid">
       <div class="feature">
-        <div class="feature-icon">⚠️</div>
+        <div class="feature-icon">🛒</div>
         <div>
-          <h3>Detecta lo que caduca</h3>
-          <p>Prioriza los ingredientes que están a punto de echarse a perder para reducir el desperdicio.</p>
+          <h3>Lista de la compra</h3>
+          <p>Genera al instante la lista de ingredientes que te faltan para cada receta. Sin esfuerzo.</p>
         </div>
       </div>
       <div class="feature">
@@ -519,10 +519,52 @@
     <strong>FridgeShot</strong> — Recetas con lo que tienes en la nevera
     <div class="footer-links">
       <a href="/app">Abrir app</a>
+      <a href="/privacidad">Privacidad</a>
+      <a href="/terminos">Términos</a>
       <a href="mailto:fridgeshotapp@gmail.com">Contacto</a>
     </div>
     <p style="margin-top:16px">© 2025 FridgeShot · Hecho con ❤️ en España</p>
   </footer>
+
+  <!-- Cookie consent banner -->
+  <div id="cookie-banner" style="
+    display:none; position:fixed; bottom:0; left:0; right:0;
+    background:#1B2D24; color:#d8f3dc; padding:14px 20px;
+    z-index:9999; font-family:'Plus Jakarta Sans',sans-serif;
+    font-size:13px; align-items:center; gap:12px; flex-wrap:wrap;
+    box-shadow:0 -4px 16px rgba(0,0,0,0.2);
+  ">
+    <p style="margin:0;flex:1;min-width:200px">
+      Usamos cookies analíticas para mejorar FridgeShot.
+      <a href="/privacidad" style="color:#74c69d;font-weight:600">Política de privacidad</a>
+    </p>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="cookieReject()" style="
+        background:transparent;border:1px solid #74c69d;color:#74c69d;
+        border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;
+        cursor:pointer;font-family:inherit;
+      ">Rechazar</button>
+      <button onclick="cookieAccept()" style="
+        background:#40916C;border:none;color:white;
+        border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;
+        cursor:pointer;font-family:inherit;
+      ">Aceptar</button>
+    </div>
+  </div>
+
+  <script>
+    function cookieAccept() {
+      localStorage.setItem('cookie_consent', '1');
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+    function cookieReject() {
+      localStorage.setItem('cookie_consent', '0');
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+    if (!localStorage.getItem('cookie_consent')) {
+      document.getElementById('cookie-banner').style.display = 'flex';
+    }
+  </script>
 
 </body>
 </html>

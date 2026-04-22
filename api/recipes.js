@@ -2,14 +2,50 @@
 // Recibe ingredientes + preferencias, devuelve 3 recetas generadas por GPT-4o
 
 const { rateLimit } = require('./_ratelimit');
+const { withSentry } = require('./_sentry');
+const { Redis } = require('@upstash/redis');
+
+let _redis;
+function getRedis() {
+  if (!_redis && process.env.UPSTASH_REDIS_REST_URL) {
+    _redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return _redis;
+}
+
+async function getCachedSpoonacular(key) {
+  try {
+    const r = getRedis();
+    if (!r) return null;
+    const val = await r.get(key);
+    return val ? (typeof val === 'string' ? JSON.parse(val) : val) : null;
+  } catch { return null; }
+}
+
+async function setCachedSpoonacular(key, data) {
+  try {
+    const r = getRedis();
+    if (!r) return;
+    await r.set(key, JSON.stringify(data), { ex: 86400 }); // 24h TTL
+  } catch { /* non-critical */ }
+}
 
 async function getSpoonacularRecipes(ingredients, appliance) {
   const apiKey = process.env.SPOONACULAR_API_KEY;
   if (!apiKey) return [];
 
+  const sortedIngredients = ingredients.slice(0, 6).sort();
+  const cacheKey = `fridgeshot:spoon:${appliance}:${sortedIngredients.join(',')}`;
+
+  const cached = await getCachedSpoonacular(cacheKey);
+  if (cached) return cached;
+
   try {
     const params = new URLSearchParams({
-      includeIngredients: ingredients.slice(0, 6).join(','),
+      includeIngredients: sortedIngredients.join(','),
       number: 3,
       addRecipeInformation: true,
       instructionsRequired: true,
@@ -24,7 +60,9 @@ async function getSpoonacularRecipes(ingredients, appliance) {
     );
     if (!res.ok) return [];
     const data = await res.json();
-    return data.results || [];
+    const results = data.results || [];
+    await setCachedSpoonacular(cacheKey, results);
+    return results;
   } catch {
     return [];
   }
@@ -66,7 +104,7 @@ Reglas de formato para los pasos (es CRÍTICO seguir el formato auténtico de Co
   return '';
 }
 
-module.exports = async function handler(req, res) {
+module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -233,4 +271,4 @@ difficulty solo puede ser: "fácil", "medio" o "difícil".`;
     }
     return res.status(500).json({ error: 'Error de conexión con el servicio de IA' });
   }
-};
+});

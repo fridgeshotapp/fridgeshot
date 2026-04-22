@@ -2,8 +2,9 @@
 // Chatbot para preguntar dudas sobre una receta específica
 
 const { rateLimit } = require('./_ratelimit');
+const { withSentry } = require('./_sentry');
 
-module.exports = async function handler(req, res) {
+module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -111,4 +112,4 @@ Responde de forma breve y práctica. Si pregunta por sustituciones, tiempos, té
     }
     return res.status(500).json({ error: 'Error de conexión con el servicio' });
   }
-};
+});

@@ -2,6 +2,7 @@
 // Recibe un array de imágenes en base64, devuelve ingredientes + bounding boxes por GPT-4o Vision
 
 const { rateLimit } = require('./_ratelimit');
+const { withSentry } = require('./_sentry');
 const { createClient } = require('@supabase/supabase-js');
 
 async function isProUser(req) {
@@ -57,7 +58,7 @@ Si no detectas ninguna marca con certeza, devuelve "detected_brands" como array 
 
 const BASE64_RE = /^[A-Za-z0-9+/]+=*$/;
 
-module.exports = async function handler(req, res) {
+module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -159,4 +160,4 @@ module.exports = async function handler(req, res) {
     }
     return res.status(500).json({ error: 'Error de conexión con el servicio de IA' });
   }
-};
+});
