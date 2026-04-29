@@ -4,6 +4,7 @@
 
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const { withSentry } = require('../_sentry');
 
 // Desactivar el body parser de Vercel para este endpoint (necesitamos el raw body)
 
@@ -108,5 +109,6 @@ async function handler(req, res) {
   }
 }
 
-handler.config = { api: { bodyParser: false } };
-module.exports = handler;
+const wrappedHandler = withSentry(handler);
+wrappedHandler.config = { api: { bodyParser: false } };
+module.exports = wrappedHandler;

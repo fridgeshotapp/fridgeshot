@@ -132,6 +132,17 @@ module.exports = withSentry(async function handler(req, res) {
     return res.status(400).json({ error: 'Lista de ingredientes inválida' });
   }
 
+  // Strip control characters and truncate each ingredient name
+  const sanitizedIngredients = ingredients
+    .filter(i => typeof i === 'string')
+    .map(i => i.replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, 80))
+    .filter(i => i.length > 0);
+
+  if (sanitizedIngredients.length === 0) {
+    return res.status(400).json({ error: 'Se necesita al menos un ingrediente válido' });
+  }
+  ingredients.splice(0, ingredients.length, ...sanitizedIngredients);
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Servicio no configurado correctamente' });

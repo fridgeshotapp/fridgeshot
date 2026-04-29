@@ -436,11 +436,26 @@
       transition: all 0.2s;
       background: var(--card-bg);
       position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      background: radial-gradient(ellipse at center, rgba(45,106,79,0.06) 0%, transparent 70%);
+      animation: uploadGlow 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes uploadGlow {
+      0%, 100% { opacity: 0; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1); }
     }
     .upload-zone:hover, .upload-zone.dragover {
       border-color: var(--green);
       background: var(--green-pale);
     }
+    .upload-zone:hover::before { animation: none; opacity: 0; }
     .upload-zone .upload-icon { font-size: 48px; margin-bottom: 12px; }
     .upload-zone .upload-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
     .upload-zone .upload-sub { font-size: 14px; color: var(--text-muted); }
@@ -705,6 +720,11 @@
       border-color: var(--green-pale);
       transform: translateY(-2px);
     }
+    @keyframes cardSlideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .recipe-card-new { animation: cardSlideIn 0.38s ease backwards; }
     .recipe-card-top {
       display: flex;
       justify-content: space-between;
@@ -3538,8 +3558,12 @@
       body: JSON.stringify({ imagesBase64 })
     });
     if (!res.ok) {
-      if (res.status === 429) throw new Error('Has alcanzado el límite de análisis por hoy. Vuelve mañana o espera un momento.');
       const err = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        const retryMins = err.retry_after ? Math.ceil(err.retry_after / 60) : null;
+        const retryMsg = retryMins ? ` Podrás volver a intentarlo en ~${retryMins} min.` : ' Vuelve mañana o hazte Pro para análisis ilimitados.';
+        throw new Error((err.error || 'Has alcanzado el límite de análisis por hoy.') + retryMsg);
+      }
       throw new Error(err.error || 'Error al conectar con el servidor.');
     }
     return res.json();
@@ -3552,8 +3576,12 @@
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
-      if (res.status === 429) throw new Error('Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.');
       const err = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        const retryMins = err.retry_after ? Math.ceil(err.retry_after / 60) : null;
+        const retryMsg = retryMins ? ` Inténtalo en ~${retryMins} min.` : ' Inténtalo más tarde.';
+        throw new Error((err.error || 'Has alcanzado el límite de recetas por hoy.') + retryMsg);
+      }
       throw new Error(err.error || 'Error al conectar con el servidor.');
     }
     return res.json();
@@ -3855,7 +3883,8 @@
         : 'diff-medium';
 
       const card = document.createElement('div');
-      card.className = `recipe-card ${diffCardClass}`;
+      card.className = `recipe-card recipe-card-new ${diffCardClass}`;
+      card.style.animationDelay = `${i * 0.12}s`;
       card.dataset.recipeIndex = i;
       card.innerHTML = `
         <div class="recipe-card-top">

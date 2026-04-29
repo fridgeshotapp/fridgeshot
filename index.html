@@ -333,6 +333,61 @@
       .section { padding: 60px 20px; }
       .features-section, .pricing-section { padding: 60px 20px; }
     }
+
+    /* ─── HERO BADGE FLOAT ───────────────────────────────── */
+    .hero-badge { animation: badgeFloat 3.5s ease-in-out infinite; }
+    @keyframes badgeFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    /* ─── STEP HOVER ─────────────────────────────────────── */
+    .step { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .step:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 32px rgba(45,106,79,0.13);
+    }
+
+    /* ─── FEATURE CARD HOVER ─────────────────────────────── */
+    .feature { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .feature:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(45,106,79,0.10);
+    }
+
+    /* ─── SCROLL REVEAL ──────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .reveal.revealed { opacity: 1; transform: none; }
+
+    /* ─── FAQ ACCORDION ──────────────────────────────────── */
+    .faq-item { cursor: pointer; }
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq-question h3 { margin-bottom: 0; flex: 1; }
+    .faq-chevron {
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: transform 0.25s ease;
+      opacity: 0.7;
+    }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); opacity: 1; }
+    .faq-answer {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.32s ease, padding-top 0.32s ease;
+    }
+    .faq-item.open .faq-answer { max-height: 240px; padding-top: 10px; }
+    .faq-answer p { margin: 0; }
   </style>
 </head>
 <body>
@@ -445,25 +500,50 @@
     <p class="section-label" style="text-align:center">Preguntas frecuentes</p>
     <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:36px;letter-spacing:-0.5px">Todo lo que necesitas saber</h2>
     <div class="faq">
-      <div class="faq-item">
-        <h3>¿Cuántos análisis puedo hacer gratis?</h3>
-        <p>3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones.</p>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <h3>¿Cuántos análisis puedo hacer gratis?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones.</p>
+        </div>
       </div>
-      <div class="faq-item">
-        <h3>¿Tengo que registrarme para usarlo?</h3>
-        <p>No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google.</p>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <h3>¿Tengo que registrarme para usarlo?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google.</p>
+        </div>
       </div>
-      <div class="faq-item">
-        <h3>¿Se guardan mis fotos?</h3>
-        <p>No. Las fotos se envían a la IA para analizar los ingredientes y se descartan inmediatamente. No las almacenamos.</p>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <h3>¿Se guardan mis fotos?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>No. Las fotos se envían a la IA para analizar los ingredientes y se descartan inmediatamente. No las almacenamos.</p>
+        </div>
       </div>
-      <div class="faq-item">
-        <h3>¿Funciona en iPhone y Android?</h3>
-        <p>Sí. FridgeShot funciona en cualquier navegador moderno. También puedes instalarla como app en tu móvil desde el navegador, sin pasar por una tienda.</p>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <h3>¿Funciona en iPhone y Android?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>Sí. FridgeShot funciona en cualquier navegador moderno. También puedes instalarla como app en tu móvil desde el navegador, sin pasar por una tienda.</p>
+        </div>
       </div>
-      <div class="faq-item">
-        <h3>¿Qué pasa si tengo pocos ingredientes?</h3>
-        <p>Funciona igual de bien. FridgeShot asume que tienes básicos como sal, aceite y especias comunes, y genera recetas con lo que realmente tienes.</p>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <h3>¿Qué pasa si tengo pocos ingredientes?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>Funciona igual de bien. FridgeShot asume que tienes básicos como sal, aceite y especias comunes, y genera recetas con lo que realmente tienes.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -564,6 +644,64 @@
     if (!localStorage.getItem('cookie_consent')) {
       document.getElementById('cookie-banner').style.display = 'flex';
     }
+
+    // FAQ accordion
+    function toggleFaq(el) {
+      const isOpen = el.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) el.classList.add('open');
+    }
+
+    // Scroll reveal via IntersectionObserver
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
+
+    document.querySelectorAll('.step, .feature, .faq-item, .pricing-card').forEach((el, i) => {
+      el.classList.add('reveal');
+      el.style.transitionDelay = `${(i % 4) * 0.08}s`;
+      revealObserver.observe(el);
+    });
+  </script>
+
+  <!-- FAQPage structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Cuántos análisis puedo hacer gratis?",
+        "acceptedAnswer": { "@type": "Answer", "text": "3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Tengo que registrarme para usarlo?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Se guardan mis fotos?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No. Las fotos se envían a la IA para analizar los ingredientes y se descartan inmediatamente. No las almacenamos." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Funciona en iPhone y Android?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Sí. FridgeShot funciona en cualquier navegador moderno. También puedes instalarla como app en tu móvil desde el navegador, sin pasar por una tienda." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué pasa si tengo pocos ingredientes?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Funciona igual de bien. FridgeShot asume que tienes básicos como sal, aceite y especias comunes, y genera recetas con lo que realmente tienes." }
+      }
+    ]
+  }
   </script>
 
 </body>

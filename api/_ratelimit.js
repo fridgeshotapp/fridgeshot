@@ -44,12 +44,21 @@ async function rateLimit(req, res, key, requests, window, errorMsg) {
 
   try {
     const limiter = getLimiter(key, requests, window);
-    const { success } = await limiter.limit(ip);
+    const { success, remaining, reset } = await limiter.limit(ip);
 
     if (!success) {
-      res.status(429).json({ error: errorMsg });
+      const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+      res.setHeader('X-RateLimit-Limit', String(requests));
+      res.setHeader('X-RateLimit-Remaining', '0');
+      res.setHeader('X-RateLimit-Reset', String(reset));
+      res.setHeader('Retry-After', String(retryAfter));
+      res.status(429).json({ error: errorMsg, retry_after: retryAfter });
       return false;
     }
+
+    res.setHeader('X-RateLimit-Limit', String(requests));
+    res.setHeader('X-RateLimit-Remaining', String(remaining ?? 0));
+    res.setHeader('X-RateLimit-Reset', String(reset ?? 0));
     return true;
   } catch {
     // Si Redis falla, dejamos pasar para no romper la app

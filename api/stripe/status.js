@@ -3,8 +3,9 @@
 // Usado por el frontend para saber si mostrar features Pro
 
 const { createClient } = require('@supabase/supabase-js');
+const { withSentry } = require('../_sentry');
 
-module.exports = async function handler(req, res) {
+module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -48,4 +49,4 @@ module.exports = async function handler(req, res) {
     trial_end: sub.trial_end,
     current_period_end: sub.current_period_end,
   });
-};
+});

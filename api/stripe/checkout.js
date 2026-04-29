@@ -4,8 +4,9 @@
 
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const { withSentry } = require('../_sentry');
 
-module.exports = async function handler(req, res) {
+module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -74,4 +75,4 @@ module.exports = async function handler(req, res) {
     console.error('Stripe checkout error:', err);
     return res.status(500).json({ error: 'Error al crear la sesión de pago. Inténtalo de nuevo.' });
   }
-};
+});
