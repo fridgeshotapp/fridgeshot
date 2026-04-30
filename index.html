@@ -594,6 +594,32 @@
     <a href="/app" class="cta-white">📸 Abrir FridgeShot gratis</a>
   </section>
 
+  <!-- NOVEDADES / EMAIL CAPTURE -->
+  <section style="padding:64px 24px;text-align:center;background:white;border-top:1px solid var(--border)">
+    <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--green);margin-bottom:10px">Novedades</p>
+    <h2 style="font-size:clamp(22px,3.5vw,32px);font-weight:800;margin-bottom:10px;letter-spacing:-0.3px">¿Quieres saber cuándo hay novedades?</h2>
+    <p style="color:var(--text-muted);font-size:15px;margin-bottom:28px;max-width:420px;margin-left:auto;margin-right:auto">Apúntate y te avisamos cuando lancemos nuevas funciones. Sin spam.</p>
+    <form id="waitlist-form" onsubmit="submitWaitlist(event)" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:480px;margin:0 auto">
+      <input
+        id="waitlist-email"
+        type="email"
+        placeholder="tu@email.com"
+        required
+        style="flex:1;min-width:220px;padding:14px 18px;border:2px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.15s"
+        onfocus="this.style.borderColor='var(--green)'"
+        onblur="this.style.borderColor='var(--border)'"
+      >
+      <button
+        type="submit"
+        id="waitlist-btn"
+        style="background:var(--green);color:white;border:none;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background 0.15s"
+        onmouseover="this.style.background='var(--green-light)'"
+        onmouseout="this.style.background='var(--green)'"
+      >Apuntarme</button>
+    </form>
+    <p id="waitlist-msg" style="margin-top:14px;font-size:14px;font-weight:600;display:none"></p>
+  </section>
+
   <!-- FOOTER -->
   <footer>
     <strong>FridgeShot</strong> — Recetas con lo que tienes en la nevera
@@ -650,6 +676,43 @@
       const isOpen = el.classList.contains('open');
       document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
       if (!isOpen) el.classList.add('open');
+    }
+
+    // Waitlist email capture
+    async function submitWaitlist(e) {
+      e.preventDefault();
+      const email = document.getElementById('waitlist-email').value.trim();
+      const btn = document.getElementById('waitlist-btn');
+      const msg = document.getElementById('waitlist-msg');
+      btn.disabled = true;
+      btn.textContent = '...';
+      msg.style.display = 'none';
+      try {
+        const res = await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (res.ok) {
+          document.getElementById('waitlist-form').style.display = 'none';
+          msg.style.color = 'var(--green)';
+          msg.textContent = '¡Apuntado! Te avisaremos cuando haya novedades.';
+          msg.style.display = 'block';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          msg.style.color = '#e63946';
+          msg.textContent = data.error || 'Algo falló, inténtalo de nuevo.';
+          msg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Apuntarme';
+        }
+      } catch {
+        msg.style.color = '#e63946';
+        msg.textContent = 'Error de conexión, inténtalo de nuevo.';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Apuntarme';
+      }
     }
 
     // Scroll reveal via IntersectionObserver
