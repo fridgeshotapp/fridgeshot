@@ -1655,60 +1655,6 @@
       cursor: default;
     }
 
-    /* ─── PHOTO GALLERY WITH BBOXES (ingredients screen) ─── */
-    .photo-gallery-section {
-      margin-bottom: 20px;
-    }
-    .photo-gallery-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-    .photo-gallery-scroll {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-    }
-    .photo-gallery-scroll::-webkit-scrollbar { display: none; }
-    .photo-gallery-item {
-      flex-shrink: 0;
-      position: relative;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      scroll-snap-align: start;
-      background: #000;
-      width: calc(100% - 30px);
-      max-width: 380px;
-    }
-    .photo-gallery-item img {
-      width: 100%;
-      display: block;
-      max-height: 260px;
-      object-fit: contain;
-    }
-    .photo-gallery-item canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-    .photo-gallery-footer {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.55));
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 16px 10px 8px;
-      pointer-events: none;
-    }
 
     /* ─── ONBOARDING ──────────────────────────────────────── */
     #onboarding {
@@ -2457,11 +2403,6 @@
       </div>
     </div>
 
-    <div id="photoGallery" class="photo-gallery-section" style="display:none">
-      <p class="photo-gallery-label">Fotos analizadas</p>
-      <div id="photoGalleryScroll" class="photo-gallery-scroll"></div>
-    </div>
-
     <div class="star-hint" id="starHint" style="display:none">
       <span class="star-hint-icon">★</span>
       <span class="star-hint-text">Toca la estrella de un ingrediente para que sea <strong>obligatorio</strong> en las recetas generadas</span>
@@ -3015,7 +2956,6 @@
     dietPrefs: [],
     appliance: 'ninguno',
     images: [],               // [{ id, file, base64, preview }]
-    photosAnalysis: [],       // [{ photo_index, items: [{ name, bbox? }] }]
     detectedBrands: [],       // [{ ingredient, brand, store }]
     ingredients: [],
     mustInclude: [],
@@ -3462,7 +3402,6 @@
       stopLoading();
       state.ingredients = deduplicateIngredients(data.all_ingredients || []);
       state.detectedBrands = data.detected_brands || [];
-      state.photosAnalysis = data.photos_analysis || [];
 
       posthog.capture('photo_analyzed', {
         photo_count: imagesBase64.length,
@@ -3471,7 +3410,6 @@
 
       renderIngredients();
       renderPantryInIngredients();
-      renderPhotoGallery();
       showScreen('ingredients');
       saveSession();
 
@@ -3732,111 +3670,6 @@
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  //  BOUNDING BOX GALLERY
-  // ─────────────────────────────────────────────────────────
-  const BBOX_COLORS = [
-    '#E63946', '#2D6A4F', '#E76F51', '#457B9D', '#F4A261',
-    '#6D597A', '#B56576', '#2A9D8F', '#E9C46A', '#264653'
-  ];
-
-  function getBboxColor(name) {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = (hash * 31 + name.charCodeAt(i)) & 0xFFFFFF;
-    }
-    return BBOX_COLORS[Math.abs(hash) % BBOX_COLORS.length];
-  }
-
-  function renderPhotoGallery() {
-    const gallery = document.getElementById('photoGallery');
-    const scroll = document.getElementById('photoGalleryScroll');
-    scroll.innerHTML = '';
-
-    if (state.images.length === 0) {
-      gallery.style.display = 'none';
-      return;
-    }
-
-    gallery.style.display = 'block';
-
-    state.images.forEach((imgEntry, photoIdx) => {
-      const item = document.createElement('div');
-      item.className = 'photo-gallery-item';
-
-      const img = document.createElement('img');
-      img.alt = 'Foto ' + (photoIdx + 1);
-      img.src = imgEntry.preview;
-
-      const canvas = document.createElement('canvas');
-      img.onload = () => drawBoundingBoxes(canvas, img, photoIdx);
-
-      const footer = document.createElement('div');
-      footer.className = 'photo-gallery-footer';
-      footer.textContent = 'Foto ' + (photoIdx + 1);
-
-      item.appendChild(img);
-      item.appendChild(canvas);
-      item.appendChild(footer);
-
-      scroll.appendChild(item);
-    });
-  }
-
-  function drawBoundingBoxes(canvas, img, photoIdx) {
-    const displayW = img.offsetWidth;
-    const displayH = img.offsetHeight;
-
-    if (displayW === 0 || displayH === 0) {
-      requestAnimationFrame(() => drawBoundingBoxes(canvas, img, photoIdx));
-      return;
-    }
-
-    canvas.width = displayW;
-    canvas.height = displayH;
-
-    const photoData = state.photosAnalysis.find(p => p.photo_index === photoIdx);
-    if (!photoData || !Array.isArray(photoData.items) || photoData.items.length === 0) return;
-
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, displayW, displayH);
-
-    const scaleX = displayW / 999;
-    const scaleY = displayH / 999;
-
-    photoData.items.forEach(item => {
-      if (!item.bbox || item.bbox.length !== 4) return;
-
-      const [x1, y1, x2, y2] = item.bbox;
-      const px = x1 * scaleX;
-      const py = y1 * scaleY;
-      const pw = (x2 - x1) * scaleX;
-      const ph = (y2 - y1) * scaleY;
-      if (pw <= 0 || ph <= 0) return;
-
-      const color = getBboxColor(item.name);
-
-      ctx.fillStyle = color + '28';
-      ctx.fillRect(px, py, pw, ph);
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(px, py, pw, ph);
-
-      const label = item.name;
-      ctx.font = 'bold 12px -apple-system, system-ui, sans-serif';
-      const textW = ctx.measureText(label).width;
-      const labelH = 18;
-      const labelPadX = 5;
-      const labelX = Math.max(0, Math.min(px, displayW - textW - labelPadX * 2));
-      const labelY = py > labelH + 4 ? py - labelH - 2 : py + ph + 2;
-
-      ctx.fillStyle = color;
-      ctx.fillRect(labelX, labelY, textW + labelPadX * 2, labelH);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, labelX + labelPadX, labelY + 13);
-    });
-  }
 
   // ─────────────────────────────────────────────────────────
   //  RENDER RECIPES
@@ -4801,22 +4634,18 @@
     state.ingredients = [...session.ingredients];
     state.mustInclude = [];
     state.images = [];
-    state.photosAnalysis = [];
     state.recipes = [];
     renderIngredients();
     renderPantryInIngredients();
-    renderPhotoGallery();
     showScreen('ingredients');
   }
 
   function startOver() {
     state.images = [];
-    state.photosAnalysis = [];
     state.ingredients = [];
     state.mustInclude = [];
     state.recipes = [];
     renderPhotoGrid();
-    renderPhotoGallery();
     document.getElementById('fileInputGallery').value = '';
     document.getElementById('fileInputCamera').value = '';
     showScreen('upload');
@@ -4824,13 +4653,11 @@
 
   function goManual() {
     state.images = [];
-    state.photosAnalysis = [];
     state.ingredients = [];
     state.mustInclude = [];
     state.recipes = [];
     renderIngredients();
     renderPantryInIngredients();
-    renderPhotoGallery();
     showScreen('ingredients');
     setTimeout(() => document.getElementById('newIngredient')?.focus(), 400);
   }

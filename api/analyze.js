@@ -1,28 +1,9 @@
 // api/analyze.js
-// Recibe un array de imágenes en base64, devuelve ingredientes + bounding boxes por GPT-4o Vision
+// Recibe un array de imágenes en base64, devuelve ingredientes detectados por GPT-4o Vision
 
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
-const { createClient } = require('@supabase/supabase-js');
-
-async function isProUser(req) {
-  try {
-    const token = (req.headers.authorization || '').replace('Bearer ', '');
-    if (!token) return false;
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return false;
-    const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data: sub } = await admin
-      .from('user_subscriptions')
-      .select('status')
-      .eq('user_id', user.id)
-      .single();
-    return sub?.status === 'active' || sub?.status === 'trialing';
-  } catch {
-    return false;
-  }
-}
+const { isProUser } = require('./_auth');
 
 function buildPrompt(n) {
   return `Recibes ${n} foto${n > 1 ? 's' : ''} de nevera, despensa o ingredientes.
@@ -31,28 +12,16 @@ Analiza ${n > 1 ? 'TODAS las imágenes juntas como si fuera un único inventario
 Reglas:
 1. Lista TODOS los ingredientes, alimentos y bebidas visibles en cualquiera de las fotos.
 2. Si el mismo ingrediente aparece en varias fotos, inclúyelo UNA SOLA VEZ en "all_ingredients".
-3. Para cada foto, indica qué items detectaste y su posición aproximada como bounding box.
-4. Si en algún envase o producto ves claramente la marca o la cadena de supermercado (ej: Hacendado→Mercadona, marca Carrefour, Lidl/Freshona/Milbona, Dia, Auchan→Alcampo, marca El Corte Inglés, marcas como Danone, Nestlé, Bimbo, La Lechera, Presidente, etc.), inclúyelo en "detected_brands". Solo incluye marcas que puedas identificar con seguridad por el envase.
-
-Las coordenadas del bounding box van de 0 a 999 ([0,0] = esquina superior-izquierda, [999,999] = inferior-derecha de cada foto).
+3. Si en algún envase o producto ves claramente la marca o la cadena de supermercado (ej: Hacendado→Mercadona, marca Carrefour, Lidl/Freshona/Milbona, Dia, Auchan→Alcampo, marca El Corte Inglés, marcas como Danone, Nestlé, Bimbo, La Lechera, Presidente, etc.), inclúyelo en "detected_brands". Solo incluye marcas que puedas identificar con seguridad por el envase.
 
 Responde SOLO con este JSON, sin texto adicional:
 {
   "all_ingredients": ["ingrediente1", "ingrediente2"],
   "detected_brands": [
     { "ingredient": "leche", "brand": "Hacendado", "store": "Mercadona" }
-  ],
-  "photos_analysis": [
-    {
-      "photo_index": 0,
-      "items": [
-        { "name": "huevo", "bbox": [100, 50, 300, 200] }
-      ]
-    }
   ]
 }
 
-Si no puedes determinar la posición exacta de un ingrediente, omite el campo "bbox" para ese item pero inclúyelo igualmente en "all_ingredients".
 Si no detectas ninguna marca con certeza, devuelve "detected_brands" como array vacío [].`;
 }
 
@@ -69,8 +38,8 @@ module.exports = withSentry(async function handler(req, res) {
   if (!isPro) {
     const allowed = await rateLimit(
       req, res,
-      'analyze', 10, '1 d',
-      'Has alcanzado el límite de análisis por hoy. Vuelve mañana o hazte Pro para análisis ilimitados.'
+      'analyze', 3, '7 d',
+      'Has alcanzado el límite de 3 análisis por semana. Vuelve en unos días o hazte Pro para análisis ilimitados.'
     );
     if (!allowed) return;
   }
@@ -161,8 +130,7 @@ module.exports = withSentry(async function handler(req, res) {
 
     return res.status(200).json({
       all_ingredients: content.all_ingredients || [],
-      detected_brands: content.detected_brands || [],
-      photos_analysis: content.photos_analysis || []
+      detected_brands: content.detected_brands || []
     });
 
   } catch (err) {

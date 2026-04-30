@@ -3,10 +3,17 @@
 
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
+const { isProUser } = require('./_auth');
 
 module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Chef IA is Pro-only — verify server-side
+  const isPro = await isProUser(req);
+  if (!isPro) {
+    return res.status(403).json({ error: 'El Chef IA es una función exclusiva del plan Pro.' });
   }
 
   // Rate limit: 50 mensajes de chat por IP al día

@@ -3,6 +3,7 @@
 
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
+const { isProUser } = require('./_auth');
 const { Redis } = require('@upstash/redis');
 
 let _redis;
@@ -122,6 +123,14 @@ module.exports = withSentry(async function handler(req, res) {
   }
 
   const { ingredients, mustInclude, dietPrefs, timeLimits, servingsOptions, mealTypes, appliance, count, excludeNames } = req.body;
+
+  // AirFryer and Thermomix are Pro-only features — verify server-side
+  if (appliance && appliance !== 'ninguno') {
+    const isPro = await isProUser(req);
+    if (!isPro) {
+      return res.status(403).json({ error: 'Las recetas para AirFryer y Thermomix son exclusivas del plan Pro.' });
+    }
+  }
 
   if (!ingredients || ingredients.length === 0) {
     return res.status(400).json({ error: 'Se necesita al menos un ingrediente' });
