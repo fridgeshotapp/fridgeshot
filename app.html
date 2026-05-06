@@ -2812,7 +2812,7 @@
       <button class="back-btn" id="detailBackBtn" onclick="showScreen('recipes')">←</button>
       <div class="logo" style="font-size:18px">Receta</div>
       <button class="save-btn" id="detailSaveBtn" onclick="proGate('save', toggleSaveCurrentRecipe)" title="Guardar receta">🤍</button>
-      <button class="settings-btn" onclick="shareCurrentRecipe()" title="Compartir">↗️</button>
+      <button class="settings-btn" onclick="shareCurrentRecipe()" title="Compartir receta">📤</button>
     </div>
 
     <div id="recipePhotoSection"></div>
@@ -2975,6 +2975,7 @@
   _supabase.auth.getSession().then(({ data: { session } }) => {
     _currentUser = session?.user || null;
     updateAuthUI();
+    posthog.capture('app_opened', { is_logged_in: !!_currentUser });
     if (_currentUser) {
       loadProStatus();
       syncAndLoadCloud();
@@ -3140,6 +3141,7 @@
   }
 
   function openProModal(reason) {
+    posthog.capture('pro_modal_opened', { reason: reason || 'unknown' });
     if (!_currentUser) {
       showToast('Primero inicia sesión para suscribirte a Pro');
       openAuthModal();
@@ -3154,6 +3156,7 @@
   }
 
   async function startProCheckout() {
+    posthog.capture('checkout_started');
     const btn = document.getElementById('proCheckoutBtn');
     btn.disabled = true;
     btn.textContent = 'Redirigiendo...';
@@ -3413,7 +3416,7 @@
 
     window.scrollTo(0, 0);
     if (name === 'setup') renderPantrySetupCard();
-    if (name === 'upload') { renderUploadHistory(); updateAnalyzeCounter(); }
+    if (name === 'upload') { renderUploadHistory(); updateAnalyzeCounter(); posthog.capture('upload_screen_viewed'); }
     if (name === 'ingredients') showStarHintIfNeeded();
   }
 
@@ -3665,6 +3668,7 @@
   async function analyzeImage() {
     const readyImages = state.images.filter(img => img.base64 !== null);
     if (readyImages.length === 0) return;
+    posthog.capture('analyze_started', { photo_count: readyImages.length });
     if (!navigator.onLine) {
       showErrorScreen({ icon: '📡', title: 'Sin conexión', msg: 'Conéctate a internet para analizar las fotos.', retryLabel: 'Intentar de nuevo', returnScreen: 'upload' });
       return;
@@ -4197,12 +4201,17 @@
         <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Toca un paso para marcarlo como hecho ✓</p>
         <ol class="steps-list">${stepsHtml}</ol>
       </div>
+
+      <button class="btn-secondary" style="width:100%;margin-top:4px;font-size:15px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="shareCurrentRecipe()">
+        📤 Compartir receta
+      </button>
     `;
 
     // Update save heart in header
     document.getElementById('detailSaveBtn').textContent = isSaved(recipe) ? '❤️' : '🤍';
     renderRecipePhotoSection(recipe.name);
 
+    posthog.capture('recipe_detail_opened', { recipe_name: recipe.name, appliance: state.appliance });
     showScreen('detail');
     requestWakeLock();
   }
@@ -4544,6 +4553,7 @@
     shareRecipe(state.recipes[state.currentRecipeIndex]);
   }
   function shareRecipe(recipe) {
+    posthog.capture('recipe_shared', { recipe_name: recipe.name });
     const text = [
       `🍽️ ${recipe.name}`,
       `⏱️ ${recipe.time_minutes} min · ${recipe.difficulty}`,
