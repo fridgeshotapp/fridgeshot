@@ -1,27 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <!-- Background square -->
-  <rect width="120" height="120" rx="26" fill="#2D6A4F"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1A5C3E"/>
+      <stop offset="100%" stop-color="#0D3B27"/>
+    </linearGradient>
+    <linearGradient id="fridgeFace" x1="0" y1="0" x2="0" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0FBF4"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="38%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#FF9E72"/>
+      <stop offset="100%" stop-color="#D95B2D"/>
+    </radialGradient>
+    <filter id="fshadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- App background -->
+  <rect width="120" height="120" rx="28" fill="url(#bg)"/>
+  <!-- Subtle top highlight -->
+  <ellipse cx="44" cy="17" rx="40" ry="13" fill="white" opacity="0.05"/>
 
   <!-- Fridge body -->
-  <rect x="28" y="18" width="64" height="82" rx="10" fill="white" opacity="0.97"/>
+  <rect x="27" y="17" width="62" height="84" rx="12" fill="url(#fridgeFace)" filter="url(#fshadow)"/>
 
-  <!-- Freezer top section -->
-  <rect x="28" y="18" width="64" height="28" rx="10" fill="white"/>
-  <rect x="28" y="38" width="64" height="8" fill="#D8F3DC"/>
+  <!-- Freezer compartment -->
+  <rect x="27" y="17" width="62" height="30" rx="12" fill="#FFFFFF"/>
+  <rect x="27" y="38" width="62" height="9" fill="#E2F6E9"/>
 
   <!-- Divider -->
-  <rect x="28" y="45" width="64" height="3" fill="#2D6A4F" opacity="0.15"/>
+  <rect x="27" y="46" width="62" height="2.5" fill="#1A5C3E" opacity="0.1"/>
 
   <!-- Freezer handle -->
-  <rect x="50" y="26" width="6" height="14" rx="3" fill="#40916C" opacity="0.6"/>
-
+  <rect x="62" y="24" width="5" height="14" rx="2.5" fill="#A8D5BC" opacity="0.9"/>
   <!-- Fridge handle -->
-  <rect x="50" y="56" width="6" height="20" rx="3" fill="#40916C" opacity="0.6"/>
+  <rect x="62" y="56" width="5" height="20" rx="2.5" fill="#A8D5BC" opacity="0.9"/>
 
-  <!-- Camera lens badge (bottom right) -->
-  <circle cx="82" cy="88" r="18" fill="#E76F51"/>
-  <circle cx="82" cy="88" r="11" fill="white" opacity="0.25"/>
-  <circle cx="82" cy="88" r="6" fill="white" opacity="0.85"/>
-  <!-- Highlight -->
-  <circle cx="77.5" cy="83.5" r="2.5" fill="white"/>
+  <!-- Food items (subtle life) -->
+  <ellipse cx="40" cy="64" rx="5" ry="7" fill="#52B788" opacity="0.5"/>
+  <rect x="46" y="60" width="8" height="10" rx="3" fill="#F4D35E" opacity="0.45"/>
+  <rect x="37" y="76" width="14" height="6" rx="3" fill="#E9C46A" opacity="0.35"/>
+
+  <!-- Camera badge shadow -->
+  <circle cx="86" cy="91" r="21" fill="#000" opacity="0.18"/>
+  <!-- Camera badge -->
+  <circle cx="84" cy="89" r="21" fill="url(#lens)"/>
+  <!-- Outer ring -->
+  <circle cx="84" cy="89" r="21" fill="none" stroke="white" stroke-width="1.5" opacity="0.2"/>
+  <!-- Inner lens rings -->
+  <circle cx="84" cy="89" r="14" fill="#B84520" opacity="0.3"/>
+  <circle cx="84" cy="89" r="8" fill="white" opacity="0.1"/>
+  <circle cx="84" cy="89" r="5" fill="white" opacity="0.72"/>
+  <!-- Glass reflection -->
+  <ellipse cx="79" cy="84" rx="3.5" ry="2.5" fill="white" opacity="0.88"/>
 </svg>

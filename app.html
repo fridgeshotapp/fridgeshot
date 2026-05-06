@@ -327,6 +327,25 @@
     .ing-must-btn.active { color: var(--green); }
     .ing-must-btn:hover { color: var(--green-light); transform: scale(1.2); }
 
+    /* ─── INGREDIENT CHIPS (categorized grid) ────────────── */
+    #ingList { background: transparent; box-shadow: none; overflow: visible; }
+    #ingList .ing-add-row { border-top: none; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .ing-category { margin-bottom: 22px; }
+    .ing-category-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .ing-category-emoji { font-size: 17px; line-height: 1; }
+    .ing-category-name { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
+    .ing-category-count { font-size: 12px; color: var(--text-muted); background: var(--border); border-radius: 999px; padding: 1px 8px; font-weight: 600; }
+    .ing-chips-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ing-chip { display: inline-flex; align-items: center; gap: 3px; background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 999px; padding: 5px 8px 5px 6px; box-shadow: var(--shadow); transition: border-color 0.15s, background 0.15s; }
+    .ing-chip.must { border-color: var(--green); background: var(--green-pale); }
+    .ing-chip-star { font-size: 14px; background: none; border: none; cursor: pointer; color: #d1d5db; padding: 0 1px; line-height: 1; transition: color 0.15s, transform 0.15s; flex-shrink: 0; }
+    .ing-chip.must .ing-chip-star { color: var(--green); }
+    .ing-chip-star:hover { color: var(--green-light); transform: scale(1.2); }
+    .ing-chip-name { font-size: 13px; font-weight: 600; color: var(--text); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ing-chip-brand { font-size: 11px; color: var(--text-muted); }
+    .ing-chip-remove { background: none; border: none; color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 0 0 0 3px; opacity: 0.35; line-height: 1; transition: opacity 0.15s; flex-shrink: 0; }
+    .ing-chip-remove:hover { opacity: 1; }
+
     /* ─── CHECKBOXES (DIET) ───────────────────────────────── */
     .diet-grid {
       display: grid;
@@ -466,6 +485,11 @@
     .upload-tips-grid { display: flex; gap: 8px; }
     .upload-tip-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 4px; font-size: 12px; opacity: 0.85; }
     .upload-tip-item span:first-child { font-size: 24px; }
+
+    .analyze-counter { font-size: 12px; text-align: center; padding: 6px 14px; border-radius: 8px; margin-top: 8px; }
+    .analyze-counter--ok { color: rgba(255,255,255,0.45); }
+    .analyze-counter--warn { color: #FCD34D; background: rgba(252,211,77,0.1); }
+    .analyze-counter--empty { color: #FCA5A5; background: rgba(252,165,165,0.1); font-weight: 600; }
 
     .upload-history-title { font-size: 13px; font-weight: 600; opacity: 0.65; margin: 18px 0 8px; }
     .upload-history-card { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
@@ -2070,6 +2094,268 @@
     }
     .pro-status-label { font-size: 13px; font-weight: 700; color: var(--green); }
     .pro-status-manage { font-size: 12px; color: var(--green); text-decoration: underline; cursor: pointer; background: none; border: none; font-family: inherit; }
+
+    /* ═══════════════════════════════════════════════════════
+       FRIDGESHOT 2.0 — REDESIGN VISUAL
+    ═══════════════════════════════════════════════════════ */
+
+    /* ── New tokens ──────────────────────────────────────── */
+    :root {
+      --green-dark: #0F2A1A;
+      --shadow-card: 0 2px 16px rgba(15,42,26,0.10);
+      --shadow-lift: 0 8px 28px rgba(15,42,26,0.18);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    /* ── Warm background ─────────────────────────────────── */
+    body, #app { background: #F3EDD6; }
+    :root { --cream: #F3EDD6; }
+    .screen { background: #F3EDD6; }
+
+    /* ── Dark header (edge-to-edge via negative margin) ───── */
+    .header {
+      margin: -24px -20px 28px;
+      padding: 16px 20px 14px;
+      background: var(--green-dark);
+      border-bottom: none;
+    }
+    .logo { color: #FEFAE0; }
+    .logo span { color: #F4A261; }
+    .header .logo img { display: none; }
+    .header .back-btn {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: white;
+      box-shadow: none;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    .header .auth-btn {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-left: auto;
+    }
+    .header .settings-btn {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: white;
+      border-radius: 8px;
+      padding: 5px 9px;
+    }
+    .header .save-btn {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: white;
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 17px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+    .subtitle { font-size: 15px; margin-bottom: 20px; }
+
+    /* ── Primary button — raised effect ──────────────────── */
+    .btn-primary {
+      padding: 18px;
+      font-size: 17px;
+      border-radius: 18px;
+      box-shadow: 0 4px 0 #1A3D2E, 0 6px 20px rgba(45,106,79,0.22);
+      position: relative; top: 0;
+      transition: background 0.15s, box-shadow 0.1s, top 0.1s;
+    }
+    .btn-primary:hover { background: var(--green-light); }
+    .btn-primary:active {
+      transform: none;
+      top: 3px;
+      box-shadow: 0 1px 0 #1A3D2E, 0 2px 8px rgba(45,106,79,0.15);
+    }
+    .btn-primary:disabled {
+      background: #a8c5b2;
+      box-shadow: 0 4px 0 #7a9d8c;
+    }
+    .btn-secondary {
+      border-radius: 18px;
+      padding: 15px;
+      border-color: rgba(45,106,79,0.3);
+      background: rgba(255,255,255,0.6);
+    }
+
+    /* ── Time / Serving selectors ────────────────────────── */
+    .time-btn {
+      padding: 16px 8px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      background: white;
+      border: 2px solid var(--border);
+      box-shadow: 0 2px 8px rgba(15,42,26,0.06);
+    }
+    .time-btn.selected {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+      box-shadow: 0 4px 0 #1A3D2E, 0 6px 16px rgba(45,106,79,0.25);
+    }
+
+    /* ── Meal type options ───────────────────────────────── */
+    .diet-option {
+      padding: 16px 12px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: white;
+      box-shadow: 0 2px 8px rgba(15,42,26,0.05);
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+    }
+    .diet-icon { font-size: 26px; }
+    .diet-label { font-size: 13px; font-weight: 700; }
+    .diet-option.selected {
+      border-color: var(--green);
+      background: var(--green-pale);
+      box-shadow: 0 4px 0 rgba(45,106,79,0.15);
+    }
+
+    /* ── Appliance options ───────────────────────────────── */
+    .appliance-option {
+      border-radius: 14px;
+      padding: 16px 8px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(15,42,26,0.05);
+    }
+    .appliance-option.selected {
+      background: rgba(231,111,81,0.08);
+      box-shadow: 0 4px 0 rgba(231,111,81,0.2);
+    }
+    .appliance-icon { font-size: 28px; }
+
+    /* ── Upload zone ─────────────────────────────────────── */
+    .upload-zone {
+      border: 2.5px dashed rgba(45,106,79,0.35);
+      border-radius: 22px;
+      padding: 52px 24px;
+      background: white;
+      box-shadow: var(--shadow-card);
+    }
+    .upload-zone .upload-icon { font-size: 64px; margin-bottom: 16px; }
+    .upload-zone .upload-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--green);
+      background: #f0faf3;
+      transform: scale(1.01);
+    }
+    .upload-zone::before { display: none; }
+
+    /* ── Recipe cards — color header strip ───────────────── */
+    .recipe-card {
+      border: none;
+      border-radius: 22px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      background: white;
+    }
+    .recipe-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lift);
+      border: none;
+    }
+    .recipe-card.diff-easy  { border: none; }
+    .recipe-card.diff-medium { border: none; }
+    .recipe-card.diff-hard  { border: none; }
+    .recipe-card-top {
+      padding: 18px 18px 16px;
+      background: linear-gradient(135deg, #1d6847, #2D6A4F);
+      margin-bottom: 0;
+    }
+    .recipe-card.diff-medium .recipe-card-top { background: linear-gradient(135deg, #b96b12, #d97706); }
+    .recipe-card.diff-hard   .recipe-card-top { background: linear-gradient(135deg, #b03020, #c0392b); }
+    .recipe-name {
+      font-size: 19px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.2px;
+    }
+    .recipe-card-top .badge-time {
+      background: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+    .recipe-card-top .save-btn { color: rgba(255,255,255,0.8); background: none; border: none; font-size: 20px; }
+    .recipe-meta { padding: 12px 18px 0; }
+    .recipe-key-ingredients { padding: 6px 18px 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .recipe-card-footer { padding: 10px 18px 16px; border-top: 1px solid #f0f0f0; margin-top: 10px; }
+    .recipe-arrow { font-weight: 700; }
+
+    /* ── Loading screen ──────────────────────────────────── */
+    #screen-loading { background: #F3EDD6; }
+    .loading-emoji { font-size: 72px; margin-bottom: 24px; }
+    .loading-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+
+    /* ── Recipe detail ───────────────────────────────────── */
+    .recipe-detail-header {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      border-radius: 20px;
+      padding: 24px 22px;
+    }
+    .recipe-detail-name { font-size: 26px; letter-spacing: -0.5px; }
+
+    /* ── Section cards ───────────────────────────────────── */
+    .section-card { box-shadow: var(--shadow-card); border-radius: 18px; }
+
+    /* ── Pantry card on setup ────────────────────────────── */
+    .pantry-card-setup { border-radius: 18px; box-shadow: var(--shadow-card); }
+
+    /* ── Quick action buttons ────────────────────────────── */
+    .quick-action-btn {
+      border-radius: 14px;
+      background: white;
+      box-shadow: var(--shadow-card);
+      border: 1.5px solid var(--border);
+      padding: 16px 8px;
+    }
+
+    /* ── Pantry screen ───────────────────────────────────── */
+    .pantry-hero { border-radius: 18px; box-shadow: var(--shadow-card); }
+    .pantry-add-bar input { border-radius: 14px; }
+    .pantry-add-bar button { border-radius: 14px; }
+
+    /* ── Ingredient add row ──────────────────────────────── */
+    #ingList .ing-add-row { border-radius: 18px; }
+
+    /* ── Onboarding ──────────────────────────────────────── */
+    .ob-next { border-radius: 18px; padding: 17px; font-size: 17px; }
+
+    /* ── Step-by-step cooking mode ───────────────────────── */
+    .step-overlay { background: var(--green-dark); }
+
+    /* ── Photo thumbnails ────────────────────────────────── */
+    .photo-thumb { border-radius: 14px; }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast { border-radius: 16px; font-size: 14px; }
+
+    /* ── History & saved cards ───────────────────────────── */
+    .history-card { border-radius: 16px; box-shadow: var(--shadow-card); }
+    .history-thumb { border-radius: 12px; }
+
+    /* ── Saved recipe cards ──────────────────────────────── */
+    .saved-card { border-radius: 16px; box-shadow: var(--shadow-card); }
+
+    /* ── Micro-interactions override ─────────────────────── */
+    .time-btn:active { transform: scale(0.94); }
+    .diet-option:active { transform: scale(0.95); }
+    .recipe-card:active { transform: scale(0.985); box-shadow: var(--shadow-card); }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async></script>
@@ -2268,30 +2554,6 @@
       </label>
     </div>
 
-    <label class="field-label">Preferencias dietéticas</label>
-    <div class="diet-grid">
-      <label class="diet-option" data-diet="vegetariano">
-        <input type="checkbox" value="vegetariano">
-        <span class="diet-icon">🥗</span>
-        <span class="diet-label">Vegetariano</span>
-      </label>
-      <label class="diet-option" data-diet="sin gluten">
-        <input type="checkbox" value="sin gluten">
-        <span class="diet-icon">🌾</span>
-        <span class="diet-label">Sin gluten</span>
-      </label>
-      <label class="diet-option" data-diet="keto">
-        <input type="checkbox" value="keto">
-        <span class="diet-icon">🥩</span>
-        <span class="diet-label">Keto</span>
-      </label>
-      <label class="diet-option" data-diet="sin lactosa">
-        <input type="checkbox" value="sin lactosa">
-        <span class="diet-icon">🥛</span>
-        <span class="diet-label">Sin lactosa</span>
-      </label>
-    </div>
-
     <label class="field-label" style="margin-top:16px">Electrodoméstico</label>
     <div class="appliance-grid">
       <div class="appliance-option appliance-opt selected" data-appliance="ninguno" id="applianceNone">
@@ -2377,6 +2639,7 @@
 
     <div class="spacer"></div>
     <button class="btn-primary mt-24" id="analyzeBtn" disabled>Analizar <span id="analyzeBtnCount"></span> 🔍</button>
+    <div id="analyzeCounter" class="analyze-counter" style="display:none"></div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════
@@ -2461,14 +2724,6 @@
     </div>
 
     <p class="subtitle" id="recipesSubtitle"></p>
-
-    <div class="recipe-filters" id="recipeFilters" style="display:none">
-      <button class="filter-chip active" data-rfilter="todas" onclick="setRecipeFilter('todas')">Todas</button>
-      <button class="filter-chip" data-rfilter="fácil" onclick="setRecipeFilter('fácil')">😊 Fácil</button>
-      <button class="filter-chip" data-rfilter="medio" onclick="setRecipeFilter('medio')">🤔 Medio</button>
-      <button class="filter-chip" data-rfilter="difícil" onclick="setRecipeFilter('difícil')">💪 Difícil</button>
-      <button class="filter-chip" data-rfilter="rapidas" onclick="setRecipeFilter('rapidas')">⚡ &lt;20 min</button>
-    </div>
 
     <div id="recipeCards" class="recipe-cards"></div>
 
@@ -2860,6 +3115,7 @@
       _isPro = data.is_pro || false;
     } catch { _isPro = false; }
     updateProUI();
+    updateAnalyzeCounter();
   }
 
   function updateProUI() {
@@ -2938,7 +3194,7 @@
   }
 
   function proGate(feature, callback) {
-    callback(); return;
+    if (_isPro) { callback(); return; }
     const reasons = {
       chat: '¿Tienes una duda mientras cocinas? El Chef IA es exclusivo de Pro.',
       save: 'Guarda tus recetas favoritas en la nube con FridgeShot Pro.',
@@ -2986,13 +3242,6 @@
       state.mealTypes = saved.mealTypes;
       saved.mealTypes.forEach(m => {
         const el = document.querySelector(`.meal-option[data-meal="${m}"]`);
-        if (el) el.classList.add('selected');
-      });
-    }
-    if (saved.dietPrefs) {
-      state.dietPrefs = saved.dietPrefs;
-      saved.dietPrefs.forEach(d => {
-        const el = document.querySelector(`.diet-option[data-diet="${d}"]`);
         if (el) el.classList.add('selected');
       });
     }
@@ -3046,20 +3295,6 @@
           state.mealTypes = [meal];
         } else {
           state.mealTypes = [];
-        }
-      });
-    });
-
-    // Diet options — fix double-fire from label+input
-    document.querySelectorAll('.diet-option:not(.meal-option)').forEach(opt => {
-      opt.addEventListener('click', e => {
-        e.preventDefault();
-        opt.classList.toggle('selected');
-        const diet = opt.dataset.diet;
-        if (opt.classList.contains('selected')) {
-          if (!state.dietPrefs.includes(diet)) state.dietPrefs.push(diet);
-        } else {
-          state.dietPrefs = state.dietPrefs.filter(d => d !== diet);
         }
       });
     });
@@ -3178,7 +3413,7 @@
 
     window.scrollTo(0, 0);
     if (name === 'setup') renderPantrySetupCard();
-    if (name === 'upload') renderUploadHistory();
+    if (name === 'upload') { renderUploadHistory(); updateAnalyzeCounter(); }
     if (name === 'ingredients') showStarHintIfNeeded();
   }
 
@@ -3384,6 +3619,47 @@
   }
 
   // ─────────────────────────────────────────────────────────
+  //  ANALYZE COUNTER (tracks free weekly usage in localStorage)
+  // ─────────────────────────────────────────────────────────
+  const ANALYZE_LIMIT = 3;
+  const ANALYZE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+  function getWeeklyAnalyzeLog() {
+    try {
+      const log = JSON.parse(localStorage.getItem('fs_scan_log') || '[]');
+      const cutoff = Date.now() - ANALYZE_WINDOW_MS;
+      return log.filter(ts => ts > cutoff);
+    } catch { return []; }
+  }
+
+  function trackAnalyze() {
+    try {
+      const log = getWeeklyAnalyzeLog();
+      log.push(Date.now());
+      localStorage.setItem('fs_scan_log', JSON.stringify(log));
+    } catch {}
+  }
+
+  function updateAnalyzeCounter() {
+    const el = document.getElementById('analyzeCounter');
+    if (!el) return;
+    if (_isPro) { el.style.display = 'none'; return; }
+    const used = getWeeklyAnalyzeLog().length;
+    const remaining = Math.max(0, ANALYZE_LIMIT - used);
+    el.style.display = 'block';
+    if (remaining === 0) {
+      el.className = 'analyze-counter analyze-counter--empty';
+      el.innerHTML = '⚠️ Has usado tus 3 análisis semanales · <span onclick="openProModal(\'Análisis ilimitados con Pro\')" style="text-decoration:underline;cursor:pointer">Hazte Pro →</span>';
+    } else if (remaining === 1) {
+      el.className = 'analyze-counter analyze-counter--warn';
+      el.textContent = '⚠️ Te queda 1 análisis gratuito esta semana';
+    } else {
+      el.className = 'analyze-counter analyze-counter--ok';
+      el.textContent = `${remaining} de ${ANALYZE_LIMIT} análisis gratuitos restantes esta semana`;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
   //  STEP 1: ANALYZE IMAGES (detect ingredients)
   // ─────────────────────────────────────────────────────────
   async function analyzeImage() {
@@ -3403,6 +3679,7 @@
       state.ingredients = deduplicateIngredients(data.all_ingredients || []);
       state.detectedBrands = data.detected_brands || [];
 
+      trackAnalyze();
       posthog.capture('photo_analyzed', {
         photo_count: imagesBase64.length,
         ingredients_found: state.ingredients.length
@@ -3415,6 +3692,11 @@
 
     } catch (err) {
       stopLoading();
+      if (err.isRateLimit) {
+        openProModal('Has usado tus 3 análisis semanales gratuitos. Con Pro tienes análisis ilimitados.');
+        updateAnalyzeCounter();
+        return;
+      }
       showErrorScreen({
         icon: '📸',
         title: 'No pudimos analizar las fotos',
@@ -3500,7 +3782,9 @@
       if (res.status === 429) {
         const retryMins = err.retry_after ? Math.ceil(err.retry_after / 60) : null;
         const retryMsg = retryMins ? ` Podrás volver a intentarlo en ~${retryMins} min.` : ' Vuelve mañana o hazte Pro para análisis ilimitados.';
-        throw new Error((err.error || 'Has alcanzado el límite de análisis por hoy.') + retryMsg);
+        const e = new Error((err.error || 'Has alcanzado el límite de análisis por hoy.') + retryMsg);
+        e.isRateLimit = true;
+        throw e;
       }
       throw new Error(err.error || 'Error al conectar con el servidor.');
     }
@@ -3551,41 +3835,71 @@
   }
 
   // ─────────────────────────────────────────────────────────
+  //  CATEGORIZE INGREDIENT
+  // ─────────────────────────────────────────────────────────
+  const ING_CATEGORIES = [
+    { key: 'proteinas', emoji: '🥩', label: 'Proteínas',        words: ['pollo','pechuga','muslo','ternera','carne','cerdo','lomo','solomillo','salmón','salmon','atún','atun','merluza','bacalao','gambas','langostinos','pavo','jamón','jamon','salchichón','chorizo','morcilla','filete','costilla','buey','cordero','conejo','pato','anchoas','sardinas','boquerones','sepia','calamar','mejillones','almejas','rape','lubina','dorada','trucha','huevo','huevos','clara','yema'] },
+    { key: 'lacteos',   emoji: '🥛', label: 'Lácteos',          words: ['leche','nata','mantequilla','queso','yogur','yogurt','mozzarella','crème','kéfir','ricotta','parmesano','manchego','brie','camembert','requesón','cuajada','batido','lácteo','lacteo'] },
+    { key: 'verduras',  emoji: '🥦', label: 'Verduras',         words: ['tomate','cebolla','ajo','puerro','pimiento','zanahoria','calabacín','berenjena','brócoli','brocoli','coliflor','espinacas','lechuga','pepino','champiñón','champiñon','seta','patata','boniato','maíz','maiz','guisantes','alcachofa','apio','nabo','remolacha','col','repollo','acelgas','espárrago','rúcula','canonigos','endivia','hinojo','calabaza','judías verdes','habas','cebolleta','cebollino','perejil','cilantro','albahaca','menta','jengibre','verdura','vegetal'] },
+    { key: 'frutas',    emoji: '🍎', label: 'Frutas',           words: ['limón','limon','naranja','manzana','plátano','platano','aguacate','fresa','mango','piña','pina','uva','pera','melocotón','melocoton','sandía','sandia','melón','melon','kiwi','cereza','frambuesa','arándano','arandano','mora','papaya','coco','granada','higo','pomelo','mandarina','ciruela','albaricoque','dátil','datil','fruta'] },
+    { key: 'granos',    emoji: '🌾', label: 'Cereales & Pan',   words: ['arroz','pasta','macarrones','espaguetis','espagueti','pan','harina','avena','lentejas','garbanzos','alubias','judías','soja','quinoa','cuscús','bulgur','mijo','trigo','centeno','cebada','farro','polenta','sémola','semola','noodles','fideos','cereal','galleta','biscote','crackers','copos','legumbre'] },
+    { key: 'condimentos',emoji: '🧂', label: 'Condimentos',     words: ['aceite','sal','pimienta','pimentón','pimenton','comino','orégano','oregano','tomillo','curry','mostaza','ketchup','mayonesa','vinagre','salsa','tahini','miso','sriracha','tabasco','caldo','azúcar','azucar','miel','sirope','mermelada','canela','vainilla','laurel','romero','estragón','cúrcuma','curcuma','cardamomo','clavo','guindilla','chile','paprika','especias','condimento','aceitunas','alcaparras','pepinillos'] },
+    { key: 'bebidas',   emoji: '🧃', label: 'Bebidas',          words: ['zumo','agua','vino','cerveza','refresco','té','te','café','cafe','bebida','jugo','limonada','horchata','leche vegetal','batido','smoothie'] },
+    { key: 'conservas', emoji: '🥫', label: 'Conservas',        words: ['conserva','lata','bote','tomate frito','tomate triturado','cocido','escabeche'] },
+  ];
+
+  function categorizeIngredient(name) {
+    const n = name.toLowerCase();
+    for (const cat of ING_CATEGORIES) {
+      if (cat.words.some(w => n.includes(w))) return cat;
+    }
+    return { key: 'otros', emoji: '📦', label: 'Otros', words: [] };
+  }
+
+  // ─────────────────────────────────────────────────────────
   //  RENDER INGREDIENTS
   // ─────────────────────────────────────────────────────────
   function renderIngredients() {
     const list = document.getElementById('ingList');
-    list.querySelectorAll('.ing-row').forEach(r => r.remove());
+    list.querySelectorAll('.ing-category').forEach(c => c.remove());
     const addRow = list.querySelector('.ing-add-row');
 
+    // Group by category preserving insertion order
+    const groups = new Map();
     state.ingredients.forEach((ing, i) => {
-      const brandInfo = state.detectedBrands.find(
-        b => b.ingredient.toLowerCase() === ing.toLowerCase()
-      );
+      const cat = categorizeIngredient(ing);
+      if (!groups.has(cat.key)) groups.set(cat.key, { meta: cat, items: [] });
+      groups.get(cat.key).items.push({ ing, index: i });
+    });
 
-      let brandHtml = '';
-      if (brandInfo) {
-        const label = brandInfo.brand && brandInfo.store && brandInfo.brand !== brandInfo.store
-          ? `🏪 ${brandInfo.brand} · ${brandInfo.store}`
-          : `🏪 ${brandInfo.store || brandInfo.brand}`;
-        brandHtml = `<span class="ing-brand">${escapeHtml(label)}</span>`;
-      }
+    groups.forEach(({ meta, items }) => {
+      const brandChip = (ing) => {
+        const b = state.detectedBrands.find(d => d.ingredient.toLowerCase() === ing.toLowerCase());
+        if (!b) return '';
+        const label = b.brand && b.store && b.brand !== b.store ? `${b.brand}·${b.store}` : (b.store || b.brand);
+        return `<span class="ing-chip-brand">🏪 ${escapeHtml(label)}</span>`;
+      };
 
-      const isMust = state.mustInclude.includes(ing);
-      const row = document.createElement('div');
-      row.className = 'ing-row';
-      row.dataset.index = i;
-      row.innerHTML = `
-        <button class="ing-must-btn${isMust ? ' active' : ''}"
-                onclick="toggleMustInclude('fridge',${i})"
-                title="Incluir sí o sí en la receta">★</button>
-        <div class="ing-row-main">
-          <span class="ing-name">${escapeHtml(ing)}</span>
-          ${brandHtml}
+      const section = document.createElement('div');
+      section.className = 'ing-category';
+      section.innerHTML = `
+        <div class="ing-category-header">
+          <span class="ing-category-emoji">${meta.emoji}</span>
+          <span class="ing-category-name">${meta.label}</span>
+          <span class="ing-category-count">${items.length}</span>
         </div>
-        <button class="ing-remove-btn" onclick="removeIngredient(${i})" title="Eliminar">✕</button>
+        <div class="ing-chips-grid">
+          ${items.map(({ ing, index }) => `
+            <div class="ing-chip${state.mustInclude.includes(ing) ? ' must' : ''}" data-index="${index}">
+              <button class="ing-chip-star" onclick="toggleMustInclude('fridge',${index})" title="Obligatorio en receta">★</button>
+              <span class="ing-chip-name">${escapeHtml(ing)}</span>
+              ${brandChip(ing)}
+              <button class="ing-chip-remove" onclick="removeIngredient(${index})" title="Eliminar">✕</button>
+            </div>
+          `).join('')}
+        </div>
       `;
-      list.insertBefore(row, addRow);
+      list.insertBefore(section, addRow);
     });
 
     updateExpireNote();
@@ -3616,10 +3930,11 @@
     }
     const isActive = state.mustInclude.includes(ing);
     if (source === 'fridge') {
-      const row = document.querySelector(`.ing-row[data-index="${identifier}"]`);
-      if (row) {
-        const btn = row.querySelector('.ing-must-btn');
-        if (btn) { btn.classList.toggle('active', isActive); }
+      const chip = document.querySelector(`.ing-chip[data-index="${identifier}"]`);
+      if (chip) {
+        chip.classList.toggle('must', isActive);
+        const btn = chip.querySelector('.ing-chip-star');
+        if (btn) btn.classList.toggle('active', isActive);
       }
     } else {
       // Pantry row identified by data attribute
@@ -3674,16 +3989,6 @@
   // ─────────────────────────────────────────────────────────
   //  RENDER RECIPES
   // ─────────────────────────────────────────────────────────
-  let _recipeFilter = 'todas';
-
-  function setRecipeFilter(filter) {
-    _recipeFilter = filter;
-    document.querySelectorAll('[data-rfilter]').forEach(c =>
-      c.classList.toggle('active', c.dataset.rfilter === filter)
-    );
-    renderRecipeCards();
-  }
-
   function renderRecipeCards() {
     const container = document.getElementById('recipeCards');
     container.innerHTML = '';
@@ -3693,16 +3998,7 @@
       ? `<span class="badge badge-appliance-thermomix">🤖 Thermomix</span>`
       : '';
 
-    let recipes = state.recipes;
-    if (_recipeFilter === 'fácil') recipes = recipes.filter(r => r.difficulty === 'fácil');
-    else if (_recipeFilter === 'medio') recipes = recipes.filter(r => r.difficulty === 'medio');
-    else if (_recipeFilter === 'difícil') recipes = recipes.filter(r => r.difficulty === 'difícil');
-    else if (_recipeFilter === 'rapidas') recipes = recipes.filter(r => r.time_minutes < 20);
-
-    if (recipes.length === 0) {
-      container.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:24px 0">No hay recetas con este filtro.</p>`;
-      return;
-    }
+    const recipes = state.recipes;
 
     recipes.forEach((recipe) => {
       const i = state.recipes.indexOf(recipe);
@@ -3745,10 +4041,6 @@
 
   function renderRecipes() {
     const subtitle = document.getElementById('recipesSubtitle');
-    _recipeFilter = 'todas';
-    document.querySelectorAll('[data-rfilter]').forEach(c =>
-      c.classList.toggle('active', c.dataset.rfilter === 'todas')
-    );
 
     const timeTxt = state.timeLimits.sort((a,b)=>a-b).join('/') + ' min';
     const servingsTxt = state.servingsOptions.sort((a,b)=>a-b).join('-') + ' pers.';
@@ -3758,10 +4050,6 @@
       ? ` · ${state.appliance === 'airfryer' ? '🌬️ Air Fryer' : '🤖 Thermomix'}`
       : '';
     subtitle.textContent = `${state.ingredients.length} ingredientes · ${timeTxt} · ${servingsTxt}${mealTxt}${dietNote}${applianceTxt}`;
-
-    // Show filters only when there are recipes with different difficulties or times
-    const filtersEl = document.getElementById('recipeFilters');
-    if (filtersEl) filtersEl.style.display = state.recipes.length > 1 ? 'flex' : 'none';
 
     renderRecipeCards();
   }

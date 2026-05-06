@@ -1,26 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1A5C3E"/>
+      <stop offset="100%" stop-color="#0D3B27"/>
+    </linearGradient>
+    <radialGradient id="lens2" cx="38%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#FF9E72"/>
+      <stop offset="100%" stop-color="#D95B2D"/>
+    </radialGradient>
+    <filter id="fshadow2" x="-15%" y="-15%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
   <!-- Background -->
-  <rect width="64" height="64" rx="14" fill="#2D6A4F"/>
+  <rect width="64" height="64" rx="15" fill="url(#bg2)"/>
 
   <!-- Fridge body -->
-  <rect x="16" y="10" width="32" height="44" rx="5" fill="white" opacity="0.95"/>
+  <rect x="14" y="9" width="34" height="46" rx="7" fill="white" opacity="0.97" filter="url(#fshadow2)"/>
 
-  <!-- Freezer compartment (top) -->
-  <rect x="16" y="10" width="32" height="14" rx="5" fill="white"/>
-  <rect x="16" y="19" width="32" height="5" fill="#D8F3DC"/>
+  <!-- Freezer compartment -->
+  <rect x="14" y="9" width="34" height="17" rx="7" fill="white"/>
+  <rect x="14" y="21" width="34" height="5" fill="#E2F6E9"/>
 
-  <!-- Divider line -->
-  <rect x="16" y="23" width="32" height="2" fill="#2D6A4F" opacity="0.2"/>
+  <!-- Divider -->
+  <rect x="14" y="25" width="34" height="1.5" fill="#1A5C3E" opacity="0.12"/>
 
-  <!-- Fridge door handles -->
-  <rect x="26" y="15" width="3" height="7" rx="1.5" fill="#2D6A4F" opacity="0.5"/>
-  <rect x="26" y="30" width="3" height="10" rx="1.5" fill="#2D6A4F" opacity="0.5"/>
+  <!-- Handles -->
+  <rect x="33" y="13" width="3" height="8" rx="1.5" fill="#A8D5BC"/>
+  <rect x="33" y="30" width="3" height="11" rx="1.5" fill="#A8D5BC"/>
 
-  <!-- Camera lens / flash circle (orange) -->
-  <circle cx="43" cy="48" r="10" fill="#E76F51"/>
-  <circle cx="43" cy="48" r="6" fill="white" opacity="0.3"/>
-  <circle cx="43" cy="48" r="3" fill="white" opacity="0.9"/>
+  <!-- Food hint -->
+  <ellipse cx="22" cy="35" rx="3" ry="4" fill="#52B788" opacity="0.45"/>
+  <rect x="26" y="32" width="5" height="6" rx="2" fill="#F4D35E" opacity="0.4"/>
 
-  <!-- Sparkle on lens -->
-  <circle cx="40.5" cy="45.5" r="1.2" fill="white" opacity="0.8"/>
+  <!-- Camera badge -->
+  <circle cx="47" cy="51" rx="11" fill="url(#lens2)"/>
+  <circle cx="47" cy="51" r="7" fill="#B84520" opacity="0.28"/>
+  <circle cx="47" cy="51" r="4" fill="white" opacity="0.7"/>
+  <ellipse cx="44" cy="48" rx="2" ry="1.5" fill="white" opacity="0.88"/>
 </svg>
