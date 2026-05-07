@@ -3068,17 +3068,32 @@
         })));
         renderSavedList();
       }
-      // Sincronizar preferencias y despensa
+      // Leer preferencias y despensa desde la nube primero
+      const { data: cloudPrefs } = await _supabase
+        .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
+      // Mezclar despensa local + nube (unión sin duplicados) para no perder ninguna
+      const localPantry = getPantry();
+      const cloudPantry = cloudPrefs?.pantry_items || [];
+      const seen = new Set();
+      const mergedPantry = [...cloudPantry, ...localPantry].filter(i => {
+        const k = i.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+      });
+      if (mergedPantry.length > 0) {
+        localStorage.setItem('fridgeshot_pantry', JSON.stringify(mergedPantry));
+        renderPantryScreen();
+        renderPantryInIngredients();
+      }
+      // Sincronizar preferencias y despensa fusionada hacia la nube
       const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
       await _supabase.from('user_preferences').upsert({
         user_id: _currentUser.id,
         time_limits: prefs.timeLimits || [30], servings_options: prefs.servingsOptions || [2],
         meal_types: prefs.mealTypes || [], diet_prefs: prefs.dietPrefs || [],
-        appliance: prefs.appliance || 'ninguno', pantry_items: getPantry()
+        appliance: prefs.appliance || 'ninguno', pantry_items: mergedPantry
       });
-      // Restaurar preferencias y despensa desde la nube
-      const { data: cloudPrefs } = await _supabase
-        .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
+      // Restaurar preferencias desde la nube
       if (cloudPrefs) {
         localStorage.setItem('fridgeshot_prefs', JSON.stringify({
           timeLimits: cloudPrefs.time_limits || [30],
@@ -3087,11 +3102,6 @@
           dietPrefs: cloudPrefs.diet_prefs || [],
           appliance: cloudPrefs.appliance || 'ninguno'
         }));
-        if (cloudPrefs.pantry_items?.length > 0) {
-          localStorage.setItem('fridgeshot_pantry', JSON.stringify(cloudPrefs.pantry_items));
-          renderPantryScreen();
-          renderPantryInIngredients();
-        }
       }
       showToast('¡Datos sincronizados! ☁️');
     } catch (e) {
