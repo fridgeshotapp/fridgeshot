@@ -3066,6 +3066,15 @@
           key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
           steps: r.steps || [], appliance: r.appliance, savedAt: r.created_at
         })));
+        const photoUrls = getRecipePhotoUrls();
+        let urlsChanged = false;
+        for (const r of cloudSaved) {
+          if (r.photo_url && photoUrls[r.name] !== r.photo_url) {
+            photoUrls[r.name] = r.photo_url;
+            urlsChanged = true;
+          }
+        }
+        if (urlsChanged) localStorage.setItem('fridgeshot_recipe_photo_urls', JSON.stringify(photoUrls));
         renderSavedList();
       }
       // Leer preferencias y despensa desde la nube primero
@@ -4416,15 +4425,59 @@
     const p = getRecipePhotos(); p[name] = base64;
     localStorage.setItem('fridgeshot_recipe_photos', JSON.stringify(p));
   }
+  function getRecipePhotoUrls() { return JSON.parse(localStorage.getItem('fridgeshot_recipe_photo_urls') || '{}'); }
+  function getRecipePhotoUrl(name) { return getRecipePhotoUrls()[name] || null; }
+  function saveRecipePhotoUrl(name, url) {
+    const u = getRecipePhotoUrls(); u[name] = url;
+    localStorage.setItem('fridgeshot_recipe_photo_urls', JSON.stringify(u));
+  }
+  function removeRecipePhotoUrl(name) {
+    const u = getRecipePhotoUrls(); delete u[name];
+    localStorage.setItem('fridgeshot_recipe_photo_urls', JSON.stringify(u));
+  }
+  function slugifyRecipeName(name) {
+    return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').substring(0, 80);
+  }
+  function base64ToBlob(b64, mime) {
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+  async function uploadPhotoToSupabase(recipeName, base64) {
+    if (!_currentUser) return null;
+    try {
+      const blob = base64ToBlob(base64, 'image/jpeg');
+      const path = `${_currentUser.id}/${slugifyRecipeName(recipeName)}.jpg`;
+      const { error } = await _supabase.storage.from('recipe-photos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+      if (error) { console.error('Photo upload:', error); return null; }
+      return _supabase.storage.from('recipe-photos').getPublicUrl(path).data.publicUrl;
+    } catch (e) { console.error('Photo upload:', e); return null; }
+  }
+  async function deletePhotoFromSupabase(recipeName) {
+    if (!_currentUser) return;
+    try {
+      const path = `${_currentUser.id}/${slugifyRecipeName(recipeName)}.jpg`;
+      await _supabase.storage.from('recipe-photos').remove([path]);
+    } catch (e) { console.error('Photo delete:', e); }
+  }
   function openRecipePhotoPicker() { document.getElementById('recipePhotoInput').click(); }
   function handleRecipePhotoFile(file) {
     if (!file || state.currentRecipeIndex === null) return;
     const name = state.recipes[state.currentRecipeIndex].name;
-    resizeImage(file, 900).then(base64 => {
+    resizeImage(file, 900).then(async base64 => {
       if (!base64) { showToast('No se pudo procesar la imagen. Prueba con JPG o PNG.'); return; }
       saveRecipePhotoData(name, base64);
       renderRecipePhotoSection(name);
       renderSavedList();
+      if (_currentUser) {
+        const url = await uploadPhotoToSupabase(name, base64);
+        if (url) {
+          saveRecipePhotoUrl(name, url);
+          _supabase.from('saved_recipes').update({ photo_url: url })
+            .eq('user_id', _currentUser.id).eq('name', name).then(() => {});
+        }
+      }
     });
   }
   function renderRecipePhotoSection(recipeName) {
@@ -4432,10 +4485,12 @@
     if (!container) return;
     if (!isSaved({ name: recipeName })) { container.innerHTML = ''; return; }
     const photo = getRecipePhoto(recipeName);
-    if (photo) {
+    const photoUrl = getRecipePhotoUrl(recipeName);
+    const photoSrc = photo ? `data:image/jpeg;base64,${photo}` : photoUrl;
+    if (photoSrc) {
       container.innerHTML = `
         <div class="recipe-photo-banner" onclick="openRecipePhotoPicker()">
-          <img src="data:image/jpeg;base64,${photo}" alt="Foto del plato">
+          <img src="${photoSrc}" alt="Foto del plato">
           <button class="recipe-photo-change" onclick="event.stopPropagation();openRecipePhotoPicker()">📸 Cambiar foto</button>
         </div>`;
     } else {
@@ -4465,11 +4520,13 @@
     let saved = getSavedRecipes();
     if (saved.some(r => r.name === recipe.name)) {
       saved = saved.filter(r => r.name !== recipe.name);
+      removeRecipePhotoUrl(recipe.name);
       showToast('Receta eliminada de guardadas');
       posthog.capture('recipe_unsaved', { recipe_name: recipe.name });
       if (_currentUser) {
         _supabase.from('saved_recipes').delete()
           .eq('user_id', _currentUser.id).eq('name', recipe.name).then(() => {});
+        deletePhotoFromSupabase(recipe.name);
       }
     } else {
       saved.push({ ...recipe, savedAt: new Date().toISOString() });
@@ -4519,7 +4576,9 @@
         const card = document.createElement('div');
         card.className = 'recipe-card';
         const savedPhoto = getRecipePhoto(recipe.name);
-        const thumbHtml = savedPhoto ? `<img class="saved-card-thumb" src="data:image/jpeg;base64,${savedPhoto}" alt="">` : '';
+        const savedPhotoUrl = getRecipePhotoUrl(recipe.name);
+        const thumbSrc = savedPhoto ? `data:image/jpeg;base64,${savedPhoto}` : savedPhotoUrl;
+        const thumbHtml = thumbSrc ? `<img class="saved-card-thumb" src="${thumbSrc}" alt="">` : '';
         card.innerHTML = `
           <div class="recipe-card-top">
             ${thumbHtml}
