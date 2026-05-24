@@ -58,8 +58,8 @@ module.exports = withSentry(async function handler(req, res) {
       },
       metadata: { user_id: user.id },
       customer_email: sub?.stripe_customer_id ? undefined : user.email,
-      success_url: `${req.headers.origin || 'https://fridgeshot.vercel.app'}/app?pro=success`,
-      cancel_url: `${req.headers.origin || 'https://fridgeshot.vercel.app'}/app?pro=cancelled`,
+      success_url: `${req.headers.origin || 'https://fridgeshot.app'}/app?pro=success`,
+      cancel_url: `${req.headers.origin || 'https://fridgeshot.app'}/app?pro=cancelled`,
     };
 
     // Reutilizar customer de Stripe si existe

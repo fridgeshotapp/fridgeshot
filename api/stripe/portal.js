@@ -42,7 +42,7 @@ module.exports = withSentry(async function handler(req, res) {
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
   const session = await stripe.billingPortal.sessions.create({
     customer: sub.stripe_customer_id,
-    return_url: `${req.headers.origin || 'https://fridgeshot.vercel.app'}/app`,
+    return_url: `${req.headers.origin || 'https://fridgeshot.app'}/app`,
   });
 
   return res.status(200).json({ url: session.url });

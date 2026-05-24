@@ -23,7 +23,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://fridgeshot.vercel.app">
+  <meta property="og:url" content="https://fridgeshot.app">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
@@ -3045,77 +3045,94 @@
 
   async function syncAndLoadCloud() {
     if (!_currentUser) return;
-    try {
-      // Subir recetas guardadas locales → nube
-      const localSaved = getSavedRecipes();
-      for (const r of localSaved) {
-        await _supabase.from('saved_recipes').upsert({
-          user_id: _currentUser.id, name: r.name,
-          time_minutes: r.time_minutes || null, difficulty: r.difficulty || null,
-          key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
-          steps: r.steps || [], appliance: r.appliance || 'ninguno'
-        }, { onConflict: 'user_id,name' });
-      }
-      // Cargar recetas desde nube → local
-      const { data: cloudSaved } = await _supabase
-        .from('saved_recipes').select('*')
-        .eq('user_id', _currentUser.id).order('created_at', { ascending: false });
-      if (cloudSaved?.length > 0) {
-        persistSaved(cloudSaved.map(r => ({
-          name: r.name, time_minutes: r.time_minutes, difficulty: r.difficulty,
-          key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
-          steps: r.steps || [], appliance: r.appliance, savedAt: r.created_at
-        })));
-        const photoUrls = getRecipePhotoUrls();
-        let urlsChanged = false;
-        for (const r of cloudSaved) {
-          if (r.photo_url && photoUrls[r.name] !== r.photo_url) {
-            photoUrls[r.name] = r.photo_url;
-            urlsChanged = true;
-          }
-        }
-        if (urlsChanged) localStorage.setItem('fridgeshot_recipe_photo_urls', JSON.stringify(photoUrls));
-        renderSavedList();
-      }
-      // Leer preferencias y despensa desde la nube primero
-      const { data: cloudPrefs } = await _supabase
-        .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
-      // Mezclar despensa local + nube (unión sin duplicados) para no perder ninguna
-      const localPantry = getPantry();
-      const cloudPantry = cloudPrefs?.pantry_items || [];
-      const seen = new Set();
-      const mergedPantry = [...cloudPantry, ...localPantry].filter(i => {
-        const k = i.toLowerCase();
-        if (seen.has(k)) return false;
-        seen.add(k); return true;
-      });
-      if (mergedPantry.length > 0) {
-        localStorage.setItem('fridgeshot_pantry', JSON.stringify(mergedPantry));
-        renderPantryScreen();
-        renderPantryInIngredients();
-      }
-      // Sincronizar preferencias y despensa fusionada hacia la nube
-      const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
-      await _supabase.from('user_preferences').upsert({
-        user_id: _currentUser.id,
-        time_limits: prefs.timeLimits || [30], servings_options: prefs.servingsOptions || [2],
-        meal_types: prefs.mealTypes || [], diet_prefs: prefs.dietPrefs || [],
-        appliance: prefs.appliance || 'ninguno', pantry_items: mergedPantry
-      });
-      // Restaurar preferencias desde la nube
-      if (cloudPrefs) {
-        localStorage.setItem('fridgeshot_prefs', JSON.stringify({
-          timeLimits: cloudPrefs.time_limits || [30],
-          servingsOptions: cloudPrefs.servings_options || [2],
-          mealTypes: cloudPrefs.meal_types || [],
-          dietPrefs: cloudPrefs.diet_prefs || [],
-          appliance: cloudPrefs.appliance || 'ninguno'
-        }));
-      }
-      showToast('¡Datos sincronizados! ☁️');
-    } catch (e) {
-      console.error('Error de sincronización:', e);
+
+    // --- Recetas guardadas: local → nube (errores individuales no bloquean el resto) ---
+    const localSaved = getSavedRecipes();
+    for (const r of localSaved) {
+      const { error } = await _supabase.from('saved_recipes').upsert({
+        user_id: _currentUser.id, name: r.name,
+        time_minutes: r.time_minutes || null, difficulty: r.difficulty || null,
+        key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
+        steps: r.steps || [], appliance: r.appliance || 'ninguno'
+      }, { onConflict: 'user_id,name' });
+      if (error) console.error('Error subiendo receta:', r.name, error.message);
     }
+
+    // --- Recetas: nube → local ---
+    const { data: cloudSaved, error: savedErr } = await _supabase
+      .from('saved_recipes').select('*')
+      .eq('user_id', _currentUser.id).order('created_at', { ascending: false });
+    if (savedErr) {
+      showToast('Error sync recetas: ' + savedErr.message);
+      console.error('saved_recipes select:', savedErr);
+    } else if (cloudSaved?.length > 0) {
+      persistSaved(cloudSaved.map(r => ({
+        name: r.name, time_minutes: r.time_minutes, difficulty: r.difficulty,
+        key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
+        steps: r.steps || [], appliance: r.appliance, savedAt: r.created_at
+      })));
+      const photoUrls = getRecipePhotoUrls();
+      let urlsChanged = false;
+      for (const r of cloudSaved) {
+        if (r.photo_url && photoUrls[r.name] !== r.photo_url) {
+          photoUrls[r.name] = r.photo_url;
+          urlsChanged = true;
+        }
+      }
+      if (urlsChanged) localStorage.setItem('fridgeshot_recipe_photo_urls', JSON.stringify(photoUrls));
+      renderSavedList();
+    }
+
+    // --- Preferencias y despensa: nube → local ---
+    const { data: cloudPrefs, error: prefsErr } = await _supabase
+      .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
+    // PGRST116 = sin filas (usuario nuevo) — no es un error real
+    if (prefsErr && prefsErr.code !== 'PGRST116') {
+      showToast('Error sync preferencias: ' + prefsErr.message);
+      console.error('user_preferences select:', prefsErr);
+      return;
+    }
+
+    const localPantry = getPantry();
+    const cloudPantry = cloudPrefs?.pantry_items || [];
+    const seen = new Set();
+    const mergedPantry = [...cloudPantry, ...localPantry].filter(i => {
+      const k = i.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    if (mergedPantry.length > 0) {
+      localStorage.setItem('fridgeshot_pantry', JSON.stringify(mergedPantry));
+      renderPantryScreen();
+      renderPantryInIngredients();
+    }
+
+    // --- Preferencias + despensa fusionada → nube ---
+    const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
+    const { error: upsertErr } = await _supabase.from('user_preferences').upsert({
+      user_id: _currentUser.id,
+      time_limits: prefs.timeLimits || [30], servings_options: prefs.servingsOptions || [2],
+      meal_types: prefs.mealTypes || [], diet_prefs: prefs.dietPrefs || [],
+      appliance: prefs.appliance || 'ninguno', pantry_items: mergedPantry
+    });
+    if (upsertErr) {
+      showToast('Error guardando datos: ' + upsertErr.message);
+      console.error('user_preferences upsert:', upsertErr);
+      return;
+    }
+
+    // --- Restaurar preferencias desde la nube ---
+    if (cloudPrefs) {
+      localStorage.setItem('fridgeshot_prefs', JSON.stringify({
+        timeLimits: cloudPrefs.time_limits || [30],
+        servingsOptions: cloudPrefs.servings_options || [2],
+        mealTypes: cloudPrefs.meal_types || [],
+        dietPrefs: cloudPrefs.diet_prefs || [],
+        appliance: cloudPrefs.appliance || 'ninguno'
+      }));
+    }
+
+    showToast('¡Datos sincronizados! ☁️');
   }
 
   // ─────────────────────────────────────────────────────────
@@ -4745,12 +4762,11 @@
   }
 
   async function syncPantryToCloud(pantryItems) {
-    try {
-      await _supabase.from('user_preferences').upsert({
-        user_id: _currentUser.id,
-        pantry_items: pantryItems
-      }, { onConflict: 'user_id' });
-    } catch (e) { console.error('Error sincronizando despensa:', e); }
+    const { error } = await _supabase.from('user_preferences').upsert({
+      user_id: _currentUser.id,
+      pantry_items: pantryItems
+    }, { onConflict: 'user_id' });
+    if (error) console.error('Error sincronizando despensa:', error.message);
   }
 
   function showPantryScreen() {

@@ -5,4 +5,4 @@ Allow: /terminos
 Disallow: /app
 Disallow: /api/
 
-Sitemap: https://fridgeshot.vercel.app/sitemap.xml
+Sitemap: https://fridgeshot.app/sitemap.xml
