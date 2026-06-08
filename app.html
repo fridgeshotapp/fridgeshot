@@ -3350,10 +3350,42 @@
     showToast('Sesión cerrada');
   }
 
+  function applyPreferencesToUI(prefs) {
+    state.timeLimits = prefs.timeLimits || [30];
+    state.servingsOptions = prefs.servingsOptions || [2];
+    state.mealTypes = prefs.mealTypes || [];
+    state.dietPrefs = prefs.dietPrefs || [];
+    state.appliance = prefs.appliance || 'ninguno';
+    document.querySelectorAll('.time-btn:not(.serving-btn)').forEach(btn =>
+      btn.classList.toggle('selected', state.timeLimits.includes(parseInt(btn.dataset.time))));
+    document.querySelectorAll('.serving-btn').forEach(btn =>
+      btn.classList.toggle('selected', state.servingsOptions.includes(parseInt(btn.dataset.servings))));
+    document.querySelectorAll('.meal-option').forEach(el =>
+      el.classList.toggle('selected', state.mealTypes.includes(el.dataset.meal)));
+    document.querySelectorAll('.appliance-opt').forEach(opt =>
+      opt.classList.toggle('selected', opt.dataset.appliance === state.appliance));
+    document.querySelectorAll('.diet-btn').forEach(btn =>
+      btn.classList.toggle('selected', state.dietPrefs.includes(btn.dataset.diet)));
+  }
+
+  async function syncPrefsToCloud() {
+    if (!_currentUser) return;
+    const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
+    await _supabase.from('user_preferences').upsert({
+      user_id: _currentUser.id,
+      time_limits: prefs.timeLimits || [30],
+      servings_options: prefs.servingsOptions || [2],
+      meal_types: prefs.mealTypes || [],
+      diet_prefs: prefs.dietPrefs || [],
+      appliance: prefs.appliance || 'ninguno',
+      pantry_items: getPantry()
+    });
+  }
+
   async function syncAndLoadCloud() {
     if (!_currentUser) return;
 
-    // --- Recetas guardadas: local → nube (errores individuales no bloquean el resto) ---
+    // 1. Push local recipes to cloud (upsert — keeps existing cloud-only recipes)
     const localSaved = getSavedRecipes();
     for (const r of localSaved) {
       const { error } = await _supabase.from('saved_recipes').upsert({
@@ -3365,14 +3397,13 @@
       if (error) console.error('Error subiendo receta:', r.name, error.message);
     }
 
-    // --- Recetas: nube → local ---
+    // 2. Cloud recipes → overwrite local (cloud is authoritative source of truth)
     const { data: cloudSaved, error: savedErr } = await _supabase
       .from('saved_recipes').select('*')
       .eq('user_id', _currentUser.id).order('created_at', { ascending: false });
     if (savedErr) {
-      showToast('Error sync recetas: ' + savedErr.message);
       console.error('saved_recipes select:', savedErr);
-    } else if (cloudSaved?.length > 0) {
+    } else if (cloudSaved) {
       persistSaved(cloudSaved.map(r => ({
         name: r.name, time_minutes: r.time_minutes, difficulty: r.difficulty,
         key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
@@ -3390,16 +3421,16 @@
       renderSavedList();
     }
 
-    // --- Preferencias y despensa: nube → local ---
+    // 3. Read cloud preferences + pantry
     const { data: cloudPrefs, error: prefsErr } = await _supabase
       .from('user_preferences').select('*').eq('user_id', _currentUser.id).single();
-    // PGRST116 = sin filas (usuario nuevo) — no es un error real
+    // PGRST116 = no row yet (new user) — not a real error
     if (prefsErr && prefsErr.code !== 'PGRST116') {
-      showToast('Error sync preferencias: ' + prefsErr.message);
       console.error('user_preferences select:', prefsErr);
       return;
     }
 
+    // 4. Merge pantry: cloud union local (both matter, cloud items first)
     const localPantry = getPantry();
     const cloudPantry = cloudPrefs?.pantry_items || [];
     const seen = new Set();
@@ -3408,40 +3439,42 @@
       if (seen.has(k)) return false;
       seen.add(k); return true;
     });
-    if (mergedPantry.length > 0) {
+    if (mergedPantry.length > 0 || cloudPantry.length > 0) {
       localStorage.setItem('fridgeshot_pantry', JSON.stringify(mergedPantry));
       renderPantryScreen();
       renderPantryInIngredients();
     }
 
-    // --- Preferencias + despensa fusionada → nube ---
-    // Cloud prefs win over local defaults when local storage is empty (e.g. new device)
-    const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
+    // 5. Preferences: cloud wins when it exists (don't let local defaults override user's saved choices)
+    const localPrefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
+    const finalPrefs = cloudPrefs ? {
+      timeLimits: cloudPrefs.time_limits || [30],
+      servingsOptions: cloudPrefs.servings_options || [2],
+      mealTypes: cloudPrefs.meal_types || [],
+      dietPrefs: cloudPrefs.diet_prefs || [],
+      appliance: cloudPrefs.appliance || 'ninguno'
+    } : {
+      timeLimits: localPrefs.timeLimits || [30],
+      servingsOptions: localPrefs.servingsOptions || [2],
+      mealTypes: localPrefs.mealTypes || [],
+      dietPrefs: localPrefs.dietPrefs || [],
+      appliance: localPrefs.appliance || 'ninguno'
+    };
+
+    localStorage.setItem('fridgeshot_prefs', JSON.stringify(finalPrefs));
+    applyPreferencesToUI(finalPrefs);
+
+    // 6. Upsert merged pantry + final prefs to cloud
     const { error: upsertErr } = await _supabase.from('user_preferences').upsert({
       user_id: _currentUser.id,
-      time_limits: prefs.timeLimits || cloudPrefs?.time_limits || [30],
-      servings_options: prefs.servingsOptions || cloudPrefs?.servings_options || [2],
-      meal_types: prefs.mealTypes || cloudPrefs?.meal_types || [],
-      diet_prefs: prefs.dietPrefs || cloudPrefs?.diet_prefs || [],
-      appliance: prefs.appliance || cloudPrefs?.appliance || 'ninguno',
+      time_limits: finalPrefs.timeLimits,
+      servings_options: finalPrefs.servingsOptions,
+      meal_types: finalPrefs.mealTypes,
+      diet_prefs: finalPrefs.dietPrefs,
+      appliance: finalPrefs.appliance,
       pantry_items: mergedPantry
     });
-    if (upsertErr) {
-      showToast('Error guardando datos: ' + upsertErr.message);
-      console.error('user_preferences upsert:', upsertErr);
-      return;
-    }
-
-    // --- Restaurar preferencias desde la nube ---
-    if (cloudPrefs) {
-      localStorage.setItem('fridgeshot_prefs', JSON.stringify({
-        timeLimits: cloudPrefs.time_limits || [30],
-        servingsOptions: cloudPrefs.servings_options || [2],
-        mealTypes: cloudPrefs.meal_types || [],
-        dietPrefs: cloudPrefs.diet_prefs || [],
-        appliance: cloudPrefs.appliance || 'ninguno'
-      }));
-    }
+    if (upsertErr) console.error('user_preferences upsert:', upsertErr);
 
     showToast('¡Datos sincronizados! ☁️');
   }
@@ -3573,34 +3606,9 @@
   //  INIT
   // ─────────────────────────────────────────────────────────
   function init() {
-    // Load saved prefs
+    // Load saved prefs from localStorage and apply to UI
     const saved = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
-
-    if (saved.timeLimits) {
-      state.timeLimits = saved.timeLimits;
-      document.querySelectorAll('.time-btn:not(.serving-btn)').forEach(btn => {
-        btn.classList.toggle('selected', state.timeLimits.includes(parseInt(btn.dataset.time)));
-      });
-    }
-    if (saved.servingsOptions) {
-      state.servingsOptions = saved.servingsOptions;
-      document.querySelectorAll('.serving-btn').forEach(btn => {
-        btn.classList.toggle('selected', state.servingsOptions.includes(parseInt(btn.dataset.servings)));
-      });
-    }
-    if (saved.mealTypes) {
-      state.mealTypes = saved.mealTypes;
-      saved.mealTypes.forEach(m => {
-        const el = document.querySelector(`.meal-option[data-meal="${m}"]`);
-        if (el) el.classList.add('selected');
-      });
-    }
-    if (saved.appliance) {
-      state.appliance = saved.appliance;
-      document.querySelectorAll('.appliance-opt').forEach(opt =>
-        opt.classList.toggle('selected', opt.dataset.appliance === state.appliance)
-      );
-    }
+    if (Object.keys(saved).length > 0) applyPreferencesToUI(saved);
 
     // Appliance buttons — single select, Pro gate para AirFryer/Thermomix
     document.querySelectorAll('.appliance-opt').forEach(opt => {
@@ -3651,13 +3659,15 @@
 
     // Setup next
     document.getElementById('setupNextBtn').addEventListener('click', () => {
-      localStorage.setItem('fridgeshot_prefs', JSON.stringify({
+      const prefs = {
         timeLimits: state.timeLimits,
         servingsOptions: state.servingsOptions,
         mealTypes: state.mealTypes,
         dietPrefs: state.dietPrefs,
         appliance: state.appliance
-      }));
+      };
+      localStorage.setItem('fridgeshot_prefs', JSON.stringify(prefs));
+      syncPrefsToCloud();
       showScreen('upload');
     });
 
