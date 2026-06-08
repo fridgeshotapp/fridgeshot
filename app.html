@@ -14,7 +14,7 @@
 
   <!-- SEO & Social -->
   <meta name="description" content="Haz una foto a tu nevera y FridgeShot te sugiere 3 recetas con lo que tienes.">
-  <meta name="theme-color" content="#2D6A4F">
+  <meta name="theme-color" content="#0F1117">
 
   <!-- Open Graph (pestaña + redes sociales) -->
   <meta property="og:title" content="FridgeShot — Recetas con lo que tienes">
@@ -2356,6 +2356,313 @@
     .diet-option:active { transform: scale(0.95); }
     .recipe-card:active { transform: scale(0.985); box-shadow: var(--shadow-card); }
 
+    /* ═══════════════════════════════════════════════════════
+       DARK PREMIUM THEME
+    ═══════════════════════════════════════════════════════ */
+
+    :root {
+      --green:        #00C896;
+      --green-light:  #00E5AD;
+      --green-pale:   rgba(0,200,150,0.13);
+      --green-dark:   #0A0C10;
+      --cream:        #0F1117;
+      --orange:       #F97316;
+      --orange-light: #FB923C;
+      --red-expire:   #EF4444;
+      --text:         #F0F2F5;
+      --text-muted:   #8B949E;
+      --card-bg:      #1A1D27;
+      --border:       #2A2D3A;
+      --shadow:       0 2px 12px rgba(0,0,0,0.4);
+      --shadow-hover: 0 6px 24px rgba(0,0,0,0.6);
+      --shadow-card:  0 2px 16px rgba(0,0,0,0.45);
+      --shadow-lift:  0 8px 28px rgba(0,0,0,0.65);
+    }
+
+    /* ── Base backgrounds ─────────────────────────────────── */
+    body, #app { background: #0F1117; }
+    .screen { background: #0F1117; }
+    #screen-loading { background: #0F1117 !important; }
+    #error-screen { background: #0F1117; }
+    #onboarding { background: #0F1117; }
+
+    /* ── Header ───────────────────────────────────────────── */
+    .header { background: #0A0C10; border-bottom: 1px solid #1E2130; }
+    .header .back-btn { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+
+    /* ── Screen transitions ───────────────────────────────── */
+    .screen.screen-leaving,
+    .screen.screen-entering { background: #0F1117; }
+
+    /* ── Inputs & forms ───────────────────────────────────── */
+    input[type="password"],
+    input[type="text"] { background: #1A1D27; color: var(--text); border-color: var(--border); }
+    input[type="password"]::placeholder,
+    input[type="text"]::placeholder { color: var(--text-muted); }
+    .ing-add-row input { color: var(--text); }
+    .ing-add-row input::placeholder { color: var(--text-muted); }
+    .saved-search { background: var(--card-bg); color: var(--text); }
+    .chat-input { background: #1A1D27; color: var(--text); border-color: var(--border); }
+
+    /* ── Buttons ──────────────────────────────────────────── */
+    .btn-primary {
+      background: var(--green);
+      box-shadow: 0 4px 0 #007A5E, 0 6px 20px rgba(0,200,150,0.25);
+      color: #0A0C10;
+      font-weight: 800;
+    }
+    .btn-primary:hover { background: var(--green-light); }
+    .btn-primary:active {
+      box-shadow: 0 1px 0 #007A5E, 0 2px 8px rgba(0,200,150,0.15);
+    }
+    .btn-primary:disabled { background: #2A3D38; box-shadow: 0 4px 0 #1A2B25; color: #5A8A78; }
+    .btn-secondary { background: rgba(255,255,255,0.05); color: var(--green); border-color: rgba(0,200,150,0.35); }
+    .btn-secondary:hover { background: var(--green-pale); }
+
+    /* ── Time / serving / diet / appliance selectors ──────── */
+    .time-btn { background: var(--card-bg); border-color: var(--border); color: var(--text-muted); }
+    .time-btn.selected {
+      background: var(--green);
+      border-color: var(--green);
+      color: #0A0C10;
+      box-shadow: 0 4px 0 #007A5E, 0 6px 16px rgba(0,200,150,0.25);
+    }
+    .diet-option { background: var(--card-bg); border-color: var(--border); box-shadow: none; }
+    .diet-option.selected { background: var(--green-pale); border-color: var(--green); box-shadow: none; }
+    .diet-label { color: var(--text); }
+    .appliance-option { background: var(--card-bg); box-shadow: none; }
+    .appliance-option.selected {
+      background: rgba(249,115,22,0.12);
+      border-color: var(--orange);
+      box-shadow: none;
+    }
+    .appliance-label { color: var(--text); }
+
+    /* ── Upload zone ──────────────────────────────────────── */
+    .upload-zone {
+      background: var(--card-bg);
+      border-color: rgba(0,200,150,0.25);
+    }
+    .upload-zone .upload-title { color: var(--text); }
+    .upload-zone .upload-sub { color: var(--text-muted); }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--green);
+      background: rgba(0,200,150,0.06);
+      transform: none;
+    }
+
+    /* ── Upload tips ──────────────────────────────────────── */
+    .upload-tips { background: rgba(255,255,255,0.04); }
+
+    /* ── Quick actions ────────────────────────────────────── */
+    .quick-action-btn {
+      background: var(--card-bg);
+      border-color: var(--border);
+      color: var(--text-muted);
+      box-shadow: none;
+    }
+    .quick-action-btn:hover { background: var(--green-pale); border-color: var(--green); color: var(--green); }
+    .quick-action-btn.pantry-btn { background: rgba(249,115,22,0.10); border-color: rgba(249,115,22,0.3); color: #FB923C; }
+    .quick-action-btn.pantry-btn:hover { background: rgba(249,115,22,0.18); }
+
+    /* ── Ingredient chips ─────────────────────────────────── */
+    .chip { background: var(--green-pale); color: var(--green); }
+    .chip.expiring { background: rgba(239,68,68,0.14); color: #EF4444; }
+    .chip.pantry { background: rgba(249,115,22,0.12); color: #FB923C; border-color: rgba(249,115,22,0.3); }
+    .ing-chip { background: var(--card-bg); border-color: var(--border); }
+    .ing-chip.must { background: var(--green-pale); border-color: var(--green); }
+    .ing-chip-name { color: var(--text); }
+    .ing-row { border-left-color: var(--green); }
+    .ing-row.pantry { background: rgba(249,115,22,0.07); border-left-color: var(--orange); }
+    .ing-row.pantry .ing-name { color: #FB923C; }
+    .ing-name { color: var(--text); }
+    .ing-row--expiring .ing-name { color: var(--orange); }
+    #ingList .ing-add-row { background: var(--card-bg); box-shadow: var(--shadow); }
+    .filter-chip { background: var(--card-bg); border-color: var(--border); color: var(--text-muted); }
+    .filter-chip.active { background: var(--green-pale); border-color: var(--green); color: var(--green); }
+
+    /* ── Star / must hint ─────────────────────────────────── */
+    .star-hint { background: rgba(0,200,150,0.10); border-color: rgba(0,200,150,0.25); color: var(--green); }
+
+    /* ── Expire note ──────────────────────────────────────── */
+    .expire-note { background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); color: #EF4444; }
+
+    /* ── Error banner ─────────────────────────────────────── */
+    .error-banner { background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); color: #EF4444; }
+
+    /* ── Recipe cards ─────────────────────────────────────── */
+    .recipe-card { background: var(--card-bg); }
+    .recipe-card:hover { border: none; }
+    .recipe-card-top { background: linear-gradient(135deg, #007A5E, var(--green)); }
+    .recipe-card.diff-medium .recipe-card-top { background: linear-gradient(135deg, #b96b12, #F97316); }
+    .recipe-card.diff-hard   .recipe-card-top { background: linear-gradient(135deg, #991b1b, #EF4444); }
+    .recipe-card-footer { border-top-color: var(--border); }
+    .recipe-key-ingredients { color: var(--text-muted); }
+
+    /* ── Recipe badges ────────────────────────────────────── */
+    .badge-time { background: rgba(255,255,255,0.07); color: var(--text-muted); border-color: var(--border); }
+    .badge-diff-easy   { background: rgba(0,200,150,0.15); color: #00C896; }
+    .badge-diff-medium { background: rgba(249,115,22,0.15); color: #FB923C; }
+    .badge-diff-hard   { background: rgba(239,68,68,0.15); color: #EF4444; }
+    .badge-appliance { background: rgba(249,115,22,0.15); color: #FB923C; border-color: rgba(249,115,22,0.3); }
+    .badge-appliance-thermomix { background: rgba(59,130,246,0.15); color: #60A5FA; border-color: rgba(59,130,246,0.3); }
+
+    /* ── Recipe change button ─────────────────────────────── */
+    .recipe-change-btn { color: var(--text-muted); border-color: var(--border); }
+    .recipe-change-btn:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: var(--green-pale); }
+
+    /* ── Recipe detail ────────────────────────────────────── */
+    .recipe-detail-header { background: linear-gradient(135deg, #0A0C10, #007A5E); }
+    .section-card { background: var(--card-bg); }
+    .ingredient-list li { border-bottom-color: var(--border); }
+
+    /* ── Steps ────────────────────────────────────────────── */
+    .step-num { background: var(--green); color: #0A0C10; }
+    .steps-list li.step-done .step-num { background: #2A3D38; }
+
+    /* ── Loading ──────────────────────────────────────────── */
+    .loading-title { color: var(--text); }
+    .loading-msg { color: var(--text-muted); }
+    .loading-bar-wrap { background: var(--border); }
+    .loading-bar { background: linear-gradient(90deg, var(--green), var(--green-light), var(--green)); }
+    .loading-step.step-active { background: var(--green-pale); color: var(--green); }
+    .loading-step.step-done { color: var(--green); }
+    .loading-step-dot { background: var(--border); }
+    .loading-step.step-done .loading-step-dot { background: var(--green); }
+    .loading-step.step-active .loading-step-dot { background: var(--green); animation: stepGlow 1s ease-in-out infinite; }
+    @keyframes stepGlow {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(0,200,150,0.2); }
+      50% { box-shadow: 0 0 0 6px rgba(0,200,150,0.08); }
+    }
+
+    /* ── History & saved cards ────────────────────────────── */
+    .history-card { background: var(--card-bg); border-color: transparent; }
+    .history-card:hover { border-color: var(--green-pale); }
+    .history-thumb { background: var(--green-pale); }
+    .history-ings { color: var(--text); }
+
+    /* ── Section cards / ob-steps ─────────────────────────── */
+    .ob-step { background: var(--card-bg); box-shadow: var(--shadow); }
+
+    /* ── Modal / bottom sheets ────────────────────────────── */
+    .modal-sheet { background: #1A1D27; }
+    .modal-title { color: var(--text); }
+    .modal-close { color: var(--text-muted); }
+    .shopping-item { color: var(--text); border-bottom-color: var(--border); }
+    .dot-have { background: var(--green); }
+    .dot-missing { background: var(--orange); }
+
+    /* ── Auth sheet ───────────────────────────────────────── */
+    .auth-sheet { background: #13151E; }
+    .auth-sheet h3 { color: var(--text); }
+    .auth-sheet > div > p { color: var(--text-muted); }
+    .auth-input { background: var(--card-bg); color: var(--text); border-color: var(--border); }
+    .auth-user-email { color: var(--text); }
+    .auth-divider { background: var(--border); }
+    .auth-btn {
+      background: rgba(0,200,150,0.12);
+      border-color: rgba(0,200,150,0.3);
+      color: var(--green);
+    }
+    .auth-btn.logged-in { background: var(--green); color: #0A0C10; border-color: var(--green); }
+    .header .auth-btn { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+
+    /* ── Pro sheet ────────────────────────────────────────── */
+    .pro-sheet { background: #13151E; }
+    .pro-sheet h3 { color: var(--text); }
+    .pro-sheet-sub { color: var(--text-muted); }
+    .pro-price-big { color: var(--green); }
+    .pro-features { color: var(--text); }
+    .pro-status-row { background: var(--green-pale); }
+    .pro-lock-label { background: rgba(0,200,150,0.15); color: var(--green); }
+
+    /* ── Chat drawer ──────────────────────────────────────── */
+    .chat-drawer { background: #13151E; }
+    .chat-drawer-header { border-bottom-color: var(--border); }
+    .chat-drawer-title { color: var(--text); }
+    .chat-drawer-subtitle { color: var(--text-muted); }
+    .chat-close-btn { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+    .chat-bubble.user { background: var(--green); color: #0A0C10; }
+    .chat-bubble.bot { background: rgba(255,255,255,0.06); color: var(--text); }
+    .chat-bubble.typing { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+    .chat-input-bar { border-top-color: var(--border); }
+    .chat-send-btn { background: var(--green); color: #0A0C10; }
+    .chat-send-btn:disabled { background: #2A3D38; }
+
+    /* ── Cooking overlay ──────────────────────────────────── */
+    .step-overlay { background: #0A0C10; }
+    .step-nav-btn.primary { background: var(--green); color: #0A0C10; border-color: var(--green); }
+    .step-nav-btn.primary:active { background: var(--green-light); }
+    .step-timer-btn { background: var(--green); color: #0A0C10; }
+
+    /* ── Pantry ───────────────────────────────────────────── */
+    .pantry-hero { background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.08)); border: 1px solid rgba(249,115,22,0.25); }
+    .pantry-hero-title { color: #FB923C; }
+    .pantry-hero-sub { color: #F97316; }
+    .pantry-hero-count { background: var(--orange); }
+    .pantry-add-bar { background: var(--card-bg); border-color: rgba(249,115,22,0.3); }
+    .pantry-add-bar input { color: var(--text); }
+    .pantry-add-bar input::placeholder { color: var(--text-muted); }
+    .pantry-add-bar button { background: var(--orange); }
+    .pantry-add-bar button:hover { background: var(--orange-light); }
+    .pantry-item-card { background: rgba(249,115,22,0.07); border-color: rgba(249,115,22,0.2); }
+    .pantry-item-card:hover { background: rgba(249,115,22,0.12); border-color: rgba(249,115,22,0.4); }
+    .pantry-item-name { color: #FB923C; }
+    .pantry-item-del { color: #F97316; }
+    .pantry-section-title { color: #FB923C; }
+    .pantry-section-title::after { background: rgba(249,115,22,0.25); }
+    .pantry-empty { color: #FB923C; }
+    .pantry-count-badge { background: var(--orange); }
+    .pantry-card-setup {
+      background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.06));
+      border-color: rgba(249,115,22,0.25);
+    }
+    .pantry-card-setup:hover { border-color: var(--orange); box-shadow: 0 4px 16px rgba(249,115,22,0.15); }
+    .pantry-card-setup-title { color: #FB923C; }
+    .pantry-card-setup-sub { color: #F97316; }
+    .pantry-card-setup-arrow { color: var(--orange); }
+    .pantry-preview-chip { background: rgba(255,255,255,0.07); border-color: rgba(249,115,22,0.25); color: #FB923C; }
+    .pantry-preview-more { background: var(--orange); }
+    .pantry-card-empty { color: #FB923C; }
+    .suggestion-chip { background: var(--card-bg); border-color: var(--border); color: var(--text-muted); }
+    .suggestion-chip:hover { border-color: var(--orange); color: var(--orange); background: rgba(249,115,22,0.1); }
+
+    /* ── Error screen ─────────────────────────────────────── */
+    .error-screen-title { color: var(--text); }
+    .error-screen-msg { color: var(--text-muted); }
+    .error-screen-detail { background: var(--card-bg); color: var(--text-muted); }
+    .error-screen-retry { background: var(--green); color: #0A0C10; }
+
+    /* ── PWA install banner ───────────────────────────────── */
+    .install-banner-btn { background: var(--green); color: #0A0C10; }
+    .install-banner-btn:hover { background: var(--green-light); }
+
+    /* ── Onboarding ───────────────────────────────────────── */
+    .ob-title { color: var(--text); }
+    .ob-text { color: var(--text-muted); }
+    .ob-dot { background: var(--border); }
+    .ob-dot.active { background: var(--green); }
+    .ob-next { background: var(--green); color: #0A0C10; font-weight: 800; }
+    .ob-next:hover { background: var(--green-light); }
+    .ob-logo-name { color: var(--green); }
+    .ob-logo-name span { color: var(--orange); }
+
+    /* ── Logo ─────────────────────────────────────────────── */
+    .logo { color: var(--green); }
+    .logo span { color: var(--orange); }
+
+    /* ── Cookie banner ────────────────────────────────────── */
+    #cookie-consent-bar { background: #13151E !important; color: var(--text) !important; }
+
+    /* ── Divider ──────────────────────────────────────────── */
+    .divider::before, .divider::after { background: var(--border); }
+
+    /* ── Analyze counter ──────────────────────────────────── */
+    .analyze-counter--ok { color: var(--text-muted); }
+
+    /* ── Photo thumbnails ─────────────────────────────────── */
+    .photo-thumb { background: var(--border); }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async></script>
@@ -3108,12 +3415,16 @@
     }
 
     // --- Preferencias + despensa fusionada → nube ---
+    // Cloud prefs win over local defaults when local storage is empty (e.g. new device)
     const prefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
     const { error: upsertErr } = await _supabase.from('user_preferences').upsert({
       user_id: _currentUser.id,
-      time_limits: prefs.timeLimits || [30], servings_options: prefs.servingsOptions || [2],
-      meal_types: prefs.mealTypes || [], diet_prefs: prefs.dietPrefs || [],
-      appliance: prefs.appliance || 'ninguno', pantry_items: mergedPantry
+      time_limits: prefs.timeLimits || cloudPrefs?.time_limits || [30],
+      servings_options: prefs.servingsOptions || cloudPrefs?.servings_options || [2],
+      meal_types: prefs.mealTypes || cloudPrefs?.meal_types || [],
+      diet_prefs: prefs.dietPrefs || cloudPrefs?.diet_prefs || [],
+      appliance: prefs.appliance || cloudPrefs?.appliance || 'ninguno',
+      pantry_items: mergedPantry
     });
     if (upsertErr) {
       showToast('Error guardando datos: ' + upsertErr.message);
@@ -3595,6 +3906,7 @@
   //  LOADING — step-based animated progress
   // ─────────────────────────────────────────────────────────
   let loadingInterval = null;
+  let loadingTimeout = null;
 
   const LOADING_STEPS = {
     analyze: [
@@ -3651,10 +3963,23 @@
       document.getElementById('loadingMsg').textContent = steps[stepIdx].label + '...';
       renderLoadingSteps(steps, stepIdx);
     }, 1900);
+
+    clearTimeout(loadingTimeout);
+    loadingTimeout = setTimeout(() => {
+      stopLoading();
+      showErrorScreen({
+        icon: '⏱️',
+        title: 'Esto está tardando demasiado',
+        msg: 'El servidor no ha respondido a tiempo. Comprueba tu conexión e inténtalo de nuevo.',
+        retryLabel: 'Intentar de nuevo',
+        returnScreen: mode === 'recipes' ? 'ingredients' : 'upload'
+      });
+    }, 50000);
   }
 
   function stopLoading() {
     if (loadingInterval) { clearInterval(loadingInterval); loadingInterval = null; }
+    if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -3701,11 +4026,16 @@
   // ─────────────────────────────────────────────────────────
   //  STEP 1: ANALYZE IMAGES (detect ingredients)
   // ─────────────────────────────────────────────────────────
+  let _analyzingImages = false;
+
   async function analyzeImage() {
+    if (_analyzingImages) return;
     const readyImages = state.images.filter(img => img.base64 !== null);
     if (readyImages.length === 0) return;
+    _analyzingImages = true;
     posthog.capture('analyze_started', { photo_count: readyImages.length });
     if (!navigator.onLine) {
+      _analyzingImages = false;
       showErrorScreen({ icon: '📡', title: 'Sin conexión', msg: 'Conéctate a internet para analizar las fotos.', retryLabel: 'Intentar de nuevo', returnScreen: 'upload' });
       return;
     }
@@ -3745,13 +4075,18 @@
         retryLabel: 'Subir otras fotos',
         returnScreen: 'upload'
       });
+    } finally {
+      _analyzingImages = false;
     }
   }
 
   // ─────────────────────────────────────────────────────────
   //  STEP 2: GENERATE RECIPES
   // ─────────────────────────────────────────────────────────
+  let _generatingRecipes = false;
+
   async function generateRecipes() {
+    if (_generatingRecipes) return;
     if (state.ingredients.length === 0) {
       showError('ingredientsError', 'Añade al menos un ingrediente.');
       return;
@@ -3761,7 +4096,7 @@
       showError('ingredientsError', '📡 Sin conexión. Conéctate a internet para generar recetas.');
       return;
     }
-
+    _generatingRecipes = true;
     startLoading('recipes');
 
     const dietText = state.dietPrefs.length > 0
@@ -3805,18 +4140,34 @@
         retryLabel: 'Intentar de nuevo',
         returnScreen: 'ingredients'
       });
+    } finally {
+      _generatingRecipes = false;
     }
   }
 
   // ─────────────────────────────────────────────────────────
   //  BACKEND API CALLS
   // ─────────────────────────────────────────────────────────
+  async function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('La solicitud tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.');
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function callAnalyze(imagesBase64) {
-    const res = await fetch('/api/analyze', {
+    const res = await fetchWithTimeout('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imagesBase64 })
-    });
+    }, 34000);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (res.status === 429) {
@@ -3832,11 +4183,11 @@
   }
 
   async function callRecipes(payload) {
-    const res = await fetch('/api/recipes', {
+    const res = await fetchWithTimeout('/api/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    });
+    }, 38000);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (res.status === 429) {

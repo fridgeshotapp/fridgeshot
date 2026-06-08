@@ -55,10 +55,13 @@ async function getSpoonacularRecipes(ingredients, appliance) {
     });
     if (appliance === 'airfryer') params.set('equipment', 'air fryer');
 
+    const spoonController = new AbortController();
+    const spoonTimeout = setTimeout(() => spoonController.abort(), 6000);
     const res = await fetch(
       `https://api.spoonacular.com/recipes/complexSearch?${params}`,
-      { headers: { 'x-api-key': apiKey } }
+      { headers: { 'x-api-key': apiKey }, signal: spoonController.signal }
     );
+    clearTimeout(spoonTimeout);
     if (!res.ok) return [];
     const data = await res.json();
     const results = data.results || [];

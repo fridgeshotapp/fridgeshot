@@ -59,7 +59,10 @@ async function handler(req, res) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const userId = getUserId(subscription);
-        if (!userId) break;
+        if (!userId) {
+          console.error(`[webhook] ${event.type}: missing user_id in metadata. customer=${subscription.customer} sub=${subscription.id}`);
+          break;
+        }
 
         await supabase.from('user_subscriptions').upsert({
           user_id: userId,
@@ -77,7 +80,10 @@ async function handler(req, res) {
 
       case 'customer.subscription.deleted': {
         const userId = getUserId(subscription);
-        if (!userId) break;
+        if (!userId) {
+          console.error(`[webhook] subscription.deleted: missing user_id in metadata. customer=${subscription.customer} sub=${subscription.id}`);
+          break;
+        }
 
         await supabase.from('user_subscriptions').upsert({
           user_id: userId,

@@ -27,6 +27,21 @@ Si no detectas ninguna marca con certeza, devuelve "detected_brands" como array 
 
 const BASE64_RE = /^[A-Za-z0-9+/]+=*$/;
 
+function hasImageMagicBytes(b64) {
+  try {
+    const bytes = Buffer.from(b64.slice(0, 12), 'base64');
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return true;
+    // PNG: 89 50 4E 47
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return true;
+    // WebP: RIFF....WEBP
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return true;
+    // GIF: GIF8
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return true;
+    return false;
+  } catch { return false; }
+}
+
 module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -67,6 +82,9 @@ module.exports = withSentry(async function handler(req, res) {
     }
     if (!BASE64_RE.test(b64.replace(/\s/g, ''))) {
       return res.status(400).json({ error: 'Formato de imagen inválido' });
+    }
+    if (!hasImageMagicBytes(b64)) {
+      return res.status(400).json({ error: 'El archivo no parece ser una imagen válida (JPG, PNG o WebP)' });
     }
   }
 

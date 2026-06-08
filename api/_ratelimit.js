@@ -60,9 +60,10 @@ async function rateLimit(req, res, key, requests, window, errorMsg) {
     res.setHeader('X-RateLimit-Remaining', String(remaining ?? 0));
     res.setHeader('X-RateLimit-Reset', String(reset ?? 0));
     return true;
-  } catch {
-    // Si Redis falla, dejamos pasar para no romper la app
-    return true;
+  } catch (err) {
+    console.error('[ratelimit] Redis error — returning 503:', err?.message);
+    res.status(503).json({ error: 'Servicio temporalmente no disponible. Inténtalo en unos segundos.' });
+    return false;
   }
 }
 
