@@ -73,8 +73,9 @@ UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
+STRIPE_PRICE_ID         # price ID of the Pro €3.99 subscription
 SPOONACULAR_API_KEY
-SENTRY_DSN              # not yet configured — pending Sentry account
+SENTRY_DSN
 ```
 
 ## External services

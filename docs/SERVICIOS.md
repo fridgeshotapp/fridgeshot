@@ -5,7 +5,7 @@ Documento de referencia: qué es cada servicio, para qué lo usamos, dónde se g
 ---
 
 ## 1. Vercel
-**Qué es:** La plataforma donde vive la app. Es como el "servidor" que hace que fridgeshot.vercel.app funcione.
+**Qué es:** La plataforma donde vive la app. Es como el "servidor" que hace que fridgeshot.app funcione.
 
 **Para qué lo usamos:**
 - Publicar la app en internet (deploy)
@@ -58,10 +58,11 @@ Documento de referencia: qué es cada servicio, para qué lo usamos, dónde se g
 **Qué es:** Una base de datos en memoria (muy rápida) que usamos como "portero" de la app.
 
 **Para qué lo usamos:**
-- **Rate limiting**: limitar cuántas veces puede usar la app cada usuario por día para evitar facturas enormes de OpenAI
-  - Análisis de fotos: máx. 10/día por IP
+- **Rate limiting**: limitar cuántas veces puede usar la app cada usuario para evitar facturas enormes de OpenAI (usuarios Pro no tienen rate limit en `/analyze`)
+  - Análisis de fotos: máx. 3 cada 7 días por IP (free)
   - Generación de recetas: máx. 30/día por IP
-  - Chat: máx. 50 mensajes/día por IP
+  - Chat (Chef IA, sólo Pro): máx. 50 mensajes/día por IP
+- **Caché**: resultados de Spoonacular guardados 24h para no repetir peticiones
 
 **Dónde se gestiona:** https://upstash.com → base de datos `fridgeshot-ratelimit`
 
@@ -83,6 +84,10 @@ Documento de referencia: qué es cada servicio, para qué lo usamos, dónde se g
 **Tablas creadas:**
 - `saved_recipes`: recetas guardadas por cada usuario (nombre, pasos, ingredientes, etc.)
 - `user_preferences`: preferencias de cada usuario (tiempo, raciones, dieta, despensa)
+- `user_subscriptions`: estado de la suscripción Pro por usuario (`active`, `trialing`, `cancelled`)
+- `waitlist`: emails capturados en la landing (con anti-abuso 5/h por IP)
+
+**Storage:** las fotos de las recetas guardadas se suben a Supabase Storage para sincronizarse entre dispositivos.
 
 **Dónde se gestiona:** https://supabase.com → proyecto `amniuriaesnvgagfjhre`
 
@@ -109,24 +114,6 @@ Documento de referencia: qué es cada servicio, para qué lo usamos, dónde se g
 **Credenciales creadas:**
 - Client ID: `511262334606-s3ir5buq4b4t7mto3robu2ppevodpn3s.apps.googleusercontent.com`
 - Client Secret: guardado en Supabase (Authentication → Providers → Google)
-
----
-
-## Resumen de costes actuales
-
-| Servicio | Coste ahora | Cuándo pagarías |
-|----------|-------------|-----------------|
-| Vercel | 0€ | Con mucho tráfico |
-| OpenAI | ~0€ (pocos usuarios) | Desde el primer usuario activo (~céntimos) |
-| Spoonacular | 0€ | Con más de 150 usos/día de AirFryer/Thermomix |
-| Upstash | 0€ | Nunca en el corto plazo |
-| Supabase | 0€ | Con más de 50.000 usuarios |
-| Google OAuth | 0€ | Nunca |
-
-**Total hasta tener usuarios reales: 0€**
-Solo OpenAI cobra desde el primer uso, pero son céntimos por usuario.
-
----
 
 ---
 
@@ -171,15 +158,43 @@ Solo OpenAI cobra desde el primer uso, pero son céntimos por usuario.
 | Supabase | 0€ | Con más de 50.000 usuarios |
 | Google OAuth | 0€ | Nunca |
 | PostHog | 0€ | Con más de 1M eventos/mes |
+| Sentry | 0€ | Con más de 5.000 errores/mes |
+| Stripe | 1,4% + 0,25€ por cobro | Sólo cuando alguien paga Pro |
 
 **Total hasta tener usuarios reales: 0€**
-Solo OpenAI cobra desde el primer uso, pero son céntimos por usuario.
+Solo OpenAI cobra desde el primer uso (céntimos por usuario) y Stripe cobra una comisión por cada suscripción Pro.
 
 ---
 
-## Servicios pendientes de configurar
+## 8. Sentry
+**Qué es:** Herramienta de tracking de errores. Cuando algo falla en producción, Sentry lo captura y te avisa.
 
-| Servicio | Fase | Para qué |
-|----------|------|----------|
-| Sentry | Fase 3 | Saber cuando algo falla en producción |
-| Stripe | Fase 4 | Cobrar las suscripciones Pro (3,99€/mes · 7 días gratis) |
+**Para qué lo usamos:**
+- Envolvemos TODOS los endpoints (`analyze`, `recipes`, `chat`, `waitlist`, `stripe/*`) con `withSentry()` — cualquier excepción no controlada se reporta automáticamente
+- También capturamos manualmente errores en catches de Stripe checkout/webhook para verlos aunque devolvamos respuesta al cliente
+
+**Dónde se gestiona:** https://sentry.io
+
+**Coste:** Gratis hasta 5.000 errores/mes.
+
+**Variable de entorno:** `SENTRY_DSN`
+
+---
+
+## 9. Stripe
+**Qué es:** Pasarela de pagos. Cobra las suscripciones Pro.
+
+**Para qué lo usamos:**
+- **Pro €3,99/mes** con 7 días de prueba gratis
+- Checkout hospedado por Stripe (`/api/stripe/checkout`)
+- Webhook que actualiza `user_subscriptions` en Supabase cuando cambia el estado (`/api/stripe/webhook`)
+- Customer Portal para que el usuario gestione o cancele su suscripción (`/api/stripe/portal`)
+
+**Dónde se gestiona:** https://dashboard.stripe.com
+
+**Coste:** 1,4% + 0,25€ por transacción europea. Sobre 3,99€ ≈ 0,31€ por cobro.
+
+**Variables de entorno:**
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_ID` (id del precio de la suscripción Pro)

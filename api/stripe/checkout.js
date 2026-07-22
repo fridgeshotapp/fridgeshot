@@ -4,7 +4,7 @@
 
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
-const { withSentry } = require('../_sentry');
+const { withSentry, captureError } = require('../_sentry');
 
 module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -73,6 +73,7 @@ module.exports = withSentry(async function handler(req, res) {
 
   } catch (err) {
     console.error('Stripe checkout error:', err);
+    captureError(err, { endpoint: 'stripe/checkout', user_id: user.id });
     return res.status(500).json({ error: 'Error al crear la sesión de pago. Inténtalo de nuevo.' });
   }
 });

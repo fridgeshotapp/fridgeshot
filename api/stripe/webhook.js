@@ -4,7 +4,7 @@
 
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
-const { withSentry } = require('../_sentry');
+const { withSentry, captureError } = require('../_sentry');
 
 // Desactivar el body parser de Vercel para este endpoint (necesitamos el raw body)
 
@@ -37,6 +37,7 @@ async function handler(req, res) {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
+    captureError(err, { endpoint: 'stripe/webhook', stage: 'signature_verification' });
     return res.status(400).json({ error: `Webhook error: ${err.message}` });
   }
 
@@ -111,6 +112,7 @@ async function handler(req, res) {
 
   } catch (err) {
     console.error('Error processing webhook:', err);
+    captureError(err, { endpoint: 'stripe/webhook', stage: 'event_processing', event_type: event?.type });
     return res.status(500).json({ error: 'Error interno procesando el webhook' });
   }
 }

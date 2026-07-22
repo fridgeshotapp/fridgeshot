@@ -37,4 +37,14 @@ function withSentry(handler) {
   };
 }
 
-module.exports = { withSentry, getSentry };
+// Captura manual: para errores atrapados dentro de un handler que aún así devuelven respuesta al cliente.
+function captureError(err, context) {
+  const Sentry = getSentry();
+  if (!Sentry) return;
+  try {
+    if (context) Sentry.withScope(scope => { scope.setContext('extra', context); Sentry.captureException(err); });
+    else Sentry.captureException(err);
+  } catch { /* nunca dejar que Sentry rompa el flujo */ }
+}
+
+module.exports = { withSentry, getSentry, captureError };

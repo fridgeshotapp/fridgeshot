@@ -9,7 +9,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { rateLimit } = require('./_ratelimit');
-const { withSentry } = require('./_sentry');
+const { withSentry, captureError } = require('./_sentry');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,6 +35,7 @@ module.exports = withSentry(async function handler(req, res) {
 
   if (error) {
     console.error('Waitlist insert error:', error.message);
+    captureError(new Error(`Waitlist insert failed: ${error.message}`), { endpoint: 'waitlist' });
     return res.status(500).json({ error: 'No se pudo guardar el email. Inténtalo de nuevo.' });
   }
 
