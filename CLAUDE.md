@@ -48,9 +48,9 @@ api/
 
 ## Key patterns
 
-**Every endpoint is wrapped in `withSentry()`** from `_sentry.js`. Don't add new endpoints without it.
+**Every endpoint is wrapped in `withSentry()`** from `_sentry.js`. Don't add new endpoints without it. `withSentry` only catches *uncaught* exceptions — if a handler catches an error itself (e.g. Stripe/Supabase errors that return a 4xx/5xx to the client), also call `captureError(err, {context})` from `_sentry.js` so it reaches Sentry.
 
-**Pro gate:** `isProUser(req)` in `_auth.js` reads `user_subscriptions.status` from Supabase. Pro users skip the analyze rate limit entirely. AirFryer/Thermomix in `recipes.js` is Pro-only and enforced server-side.
+**Pro gate:** `isProUser(req)` in `_auth.js` reads `user_subscriptions.status` from Supabase. Pro users skip the analyze rate limit entirely. AirFryer/Thermomix in `recipes.js` and the chef chat in `chat.js` are Pro-only and enforced server-side.
 
 **Rate limits (free users):**
 - `/api/analyze` — 3 per 7 days per IP
@@ -60,6 +60,24 @@ api/
 **Stripe webhook** (`api/stripe/webhook.js`) requires raw body — Vercel's body parser is disabled via `module.exports.config = { api: { bodyParser: false } }`. Do not change this.
 
 **Spoonacular** is only called in `recipes.js` when `appliance` is `airfryer` or `thermomix`. Results are cached in Upstash Redis with 24h TTL.
+
+**CDN cache on HTML:** `vercel.json` pins `/`, `/app`, `*.html`, `/manifest.json` and `/sw.js` to `s-maxage=60` (and `sw.js` to `s-maxage=0`). Without this the Vercel edge cache holds stale HTML for days after a deploy — do not remove.
+
+## Frontend
+
+`app.html` is a single ~5700-line file with three `:root` blocks stacked in one `<style>`: an original light-green block (line ~41), a "Redesign 2.0" warm block (line ~2103), and the **Dark Premium** block (line ~2363) that wins the cascade. When adjusting colors, edit the Dark Premium block — the earlier ones are dead but still there because 2300+ lines of CSS in between hardcode individual overrides that would break if the tokens vanished.
+
+The landing (`index.html`) uses the same palette (`#00C896` / `#F97316` / `#0F1117` / `#1A1D27` / `#F0F2F5` / `#8B949E`) as loose vars declared inline in its `<style>`.
+
+## PWA icons
+
+Icons live in `/assets/` and are versioned in the URL (`icon-180-v2.png`, `icon-192-v2.png`, `icon-512-v2.png`) because iOS caches `apple-touch-icon` by URL and ignores manifest refreshes. Any icon redesign requires bumping the suffix everywhere — otherwise iPhones that have already visited the site keep serving the old icon indefinitely.
+
+To regenerate the PNGs from `assets/logo.svg`, install `sharp` temporarily (`npm install --no-save sharp`) and run a one-shot Node script that calls `sharp(svg, { density: 400 }).resize(size, size).png().toFile(...)` for each size. After generating, delete the temp `node_modules/sharp` / `@img` folders — sharp is not a runtime dep. Bump `CACHE` version in `sw.js` in the same commit.
+
+## Analytics (PostHog)
+
+Events tracked in `app.html`: `photo_analyzed`, `recipes_generated`, `recipe_saved`, `recipe_unsaved`, `chat_opened`, `user_signed_in`. Anonymous users are tracked by device ID; on Google sign-in, PostHog identifies the user so all past events attach to the account.
 
 ## Supabase tables
 
@@ -98,4 +116,4 @@ SENTRY_DSN
 | Stripe | Pro subscriptions (€3.99/mo) | dashboard.stripe.com |
 | Upstash Redis | Rate limiting + Spoonacular cache | upstash.com |
 | PostHog | Analytics | posthog.com (project key: phc_yoR4Z9wD2moKZKKvdYsan9dmuyut74crAVxyeAidonKF) |
-| Sentry | Error tracking (pending setup) | sentry.io |
+| Sentry | Error tracking (active) | sentry.io |
