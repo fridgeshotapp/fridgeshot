@@ -1,5 +1,5 @@
-const CACHE = 'fridgeshot-v8';
-const STATIC = ['/app', '/assets/logo.svg', '/assets/favicon.svg', '/manifest.json', '/assets/icon-192.png', '/assets/icon-512.png'];
+const CACHE = 'fridgeshot-v9';
+const STATIC = ['/app', '/assets/logo.svg', '/assets/favicon.svg', '/manifest.json', '/assets/icon-180-v2.png', '/assets/icon-192-v2.png', '/assets/icon-512-v2.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
