@@ -9,10 +9,20 @@ FridgeShot is a PWA that analyzes fridge photos with GPT-4o Vision and generates
 ## Deploy
 
 ```bash
-git push origin master   # triggers auto-deploy on Vercel
+git push origin   # triggers auto-deploy on Vercel
 ```
 
-No local dev server is needed for most changes. To test API functions locally, install the Vercel CLI (`npm i -g vercel`) and run `vercel dev` — it reads `.env.local` for secrets.
+Do NOT run `git push origin master` — Vercel's Production Branch is `main`, not `master`, and the Vercel REST API does not expose a way to change it. Instead, the local git config has a dual refspec configured:
+
+```
+[remote "origin"]
+  push = refs/heads/master:refs/heads/master
+  push = refs/heads/master:refs/heads/main
+```
+
+So `git push origin` (with no args) pushes `master` up as **both** `master` (preview) and `main` (production) in one shot. If you push with an explicit ref (`git push origin master`), only master goes up and production won't update.
+
+To test API functions locally, install the Vercel CLI (`npm i -g vercel`) and run `vercel dev` — it reads `.env.local` for secrets.
 
 There are no tests, linter, or CI configured.
 
