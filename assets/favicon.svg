@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="bg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1A5C3E"/>
-      <stop offset="100%" stop-color="#0D3B27"/>
+      <stop offset="0%" stop-color="#1A1D27"/>
+      <stop offset="100%" stop-color="#0A0C10"/>
     </linearGradient>
     <radialGradient id="lens2" cx="38%" cy="32%" r="68%">
-      <stop offset="0%" stop-color="#FF9E72"/>
-      <stop offset="100%" stop-color="#D95B2D"/>
+      <stop offset="0%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#EA580C"/>
     </radialGradient>
     <filter id="fshadow2" x="-15%" y="-15%" width="140%" height="140%">
-      <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.18"/>
+      <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.35"/>
     </filter>
   </defs>
 
@@ -17,26 +17,26 @@
   <rect width="64" height="64" rx="15" fill="url(#bg2)"/>
 
   <!-- Fridge body -->
-  <rect x="14" y="9" width="34" height="46" rx="7" fill="white" opacity="0.97" filter="url(#fshadow2)"/>
+  <rect x="14" y="9" width="34" height="46" rx="7" fill="#F0F2F5" filter="url(#fshadow2)"/>
 
   <!-- Freezer compartment -->
-  <rect x="14" y="9" width="34" height="17" rx="7" fill="white"/>
-  <rect x="14" y="21" width="34" height="5" fill="#E2F6E9"/>
+  <rect x="14" y="9" width="34" height="17" rx="7" fill="#F0F2F5"/>
+  <rect x="14" y="21" width="34" height="5" fill="#DDE3E8"/>
 
   <!-- Divider -->
-  <rect x="14" y="25" width="34" height="1.5" fill="#1A5C3E" opacity="0.12"/>
+  <rect x="14" y="25" width="34" height="1.5" fill="#00C896" opacity="0.18"/>
 
   <!-- Handles -->
-  <rect x="33" y="13" width="3" height="8" rx="1.5" fill="#A8D5BC"/>
-  <rect x="33" y="30" width="3" height="11" rx="1.5" fill="#A8D5BC"/>
+  <rect x="33" y="13" width="3" height="8" rx="1.5" fill="#00C896"/>
+  <rect x="33" y="30" width="3" height="11" rx="1.5" fill="#00C896"/>
 
   <!-- Food hint -->
-  <ellipse cx="22" cy="35" rx="3" ry="4" fill="#52B788" opacity="0.45"/>
-  <rect x="26" y="32" width="5" height="6" rx="2" fill="#F4D35E" opacity="0.4"/>
+  <ellipse cx="22" cy="35" rx="3" ry="4" fill="#00C896" opacity="0.55"/>
+  <rect x="26" y="32" width="5" height="6" rx="2" fill="#F97316" opacity="0.5"/>
 
   <!-- Camera badge -->
-  <circle cx="47" cy="51" rx="11" fill="url(#lens2)"/>
-  <circle cx="47" cy="51" r="7" fill="#B84520" opacity="0.28"/>
-  <circle cx="47" cy="51" r="4" fill="white" opacity="0.7"/>
-  <ellipse cx="44" cy="48" rx="2" ry="1.5" fill="white" opacity="0.88"/>
+  <circle cx="47" cy="51" r="11" fill="url(#lens2)"/>
+  <circle cx="47" cy="51" r="7" fill="#9A3412" opacity="0.3"/>
+  <circle cx="47" cy="51" r="4" fill="white" opacity="0.75"/>
+  <ellipse cx="44" cy="48" rx="2" ry="1.5" fill="white" opacity="0.9"/>
 </svg>

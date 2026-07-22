@@ -1,57 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1A5C3E"/>
-      <stop offset="100%" stop-color="#0D3B27"/>
+      <stop offset="0%" stop-color="#1A1D27"/>
+      <stop offset="100%" stop-color="#0A0C10"/>
     </linearGradient>
     <linearGradient id="fridgeFace" x1="0" y1="0" x2="0" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#F0FBF4"/>
+      <stop offset="0%" stop-color="#F5F7FA"/>
+      <stop offset="100%" stop-color="#DDE3E8"/>
     </linearGradient>
     <radialGradient id="lens" cx="38%" cy="32%" r="68%">
-      <stop offset="0%" stop-color="#FF9E72"/>
-      <stop offset="100%" stop-color="#D95B2D"/>
+      <stop offset="0%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#EA580C"/>
     </radialGradient>
     <filter id="fshadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.18"/>
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
     </filter>
   </defs>
 
   <!-- App background -->
   <rect width="120" height="120" rx="28" fill="url(#bg)"/>
   <!-- Subtle top highlight -->
-  <ellipse cx="44" cy="17" rx="40" ry="13" fill="white" opacity="0.05"/>
+  <ellipse cx="44" cy="17" rx="40" ry="13" fill="#00C896" opacity="0.06"/>
 
   <!-- Fridge body -->
   <rect x="27" y="17" width="62" height="84" rx="12" fill="url(#fridgeFace)" filter="url(#fshadow)"/>
 
   <!-- Freezer compartment -->
-  <rect x="27" y="17" width="62" height="30" rx="12" fill="#FFFFFF"/>
-  <rect x="27" y="38" width="62" height="9" fill="#E2F6E9"/>
+  <rect x="27" y="17" width="62" height="30" rx="12" fill="#F5F7FA"/>
+  <rect x="27" y="38" width="62" height="9" fill="#DDE3E8"/>
 
   <!-- Divider -->
-  <rect x="27" y="46" width="62" height="2.5" fill="#1A5C3E" opacity="0.1"/>
+  <rect x="27" y="46" width="62" height="2.5" fill="#00C896" opacity="0.2"/>
 
   <!-- Freezer handle -->
-  <rect x="62" y="24" width="5" height="14" rx="2.5" fill="#A8D5BC" opacity="0.9"/>
+  <rect x="62" y="24" width="5" height="14" rx="2.5" fill="#00C896"/>
   <!-- Fridge handle -->
-  <rect x="62" y="56" width="5" height="20" rx="2.5" fill="#A8D5BC" opacity="0.9"/>
+  <rect x="62" y="56" width="5" height="20" rx="2.5" fill="#00C896"/>
 
   <!-- Food items (subtle life) -->
-  <ellipse cx="40" cy="64" rx="5" ry="7" fill="#52B788" opacity="0.5"/>
-  <rect x="46" y="60" width="8" height="10" rx="3" fill="#F4D35E" opacity="0.45"/>
-  <rect x="37" y="76" width="14" height="6" rx="3" fill="#E9C46A" opacity="0.35"/>
+  <ellipse cx="40" cy="64" rx="5" ry="7" fill="#00C896" opacity="0.6"/>
+  <rect x="46" y="60" width="8" height="10" rx="3" fill="#F97316" opacity="0.55"/>
+  <rect x="37" y="76" width="14" height="6" rx="3" fill="#F97316" opacity="0.4"/>
 
   <!-- Camera badge shadow -->
-  <circle cx="86" cy="91" r="21" fill="#000" opacity="0.18"/>
+  <circle cx="86" cy="91" r="21" fill="#000" opacity="0.35"/>
   <!-- Camera badge -->
   <circle cx="84" cy="89" r="21" fill="url(#lens)"/>
   <!-- Outer ring -->
-  <circle cx="84" cy="89" r="21" fill="none" stroke="white" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="84" cy="89" r="21" fill="none" stroke="white" stroke-width="1.5" opacity="0.25"/>
   <!-- Inner lens rings -->
-  <circle cx="84" cy="89" r="14" fill="#B84520" opacity="0.3"/>
-  <circle cx="84" cy="89" r="8" fill="white" opacity="0.1"/>
-  <circle cx="84" cy="89" r="5" fill="white" opacity="0.72"/>
+  <circle cx="84" cy="89" r="14" fill="#9A3412" opacity="0.3"/>
+  <circle cx="84" cy="89" r="8" fill="white" opacity="0.12"/>
+  <circle cx="84" cy="89" r="5" fill="white" opacity="0.78"/>
   <!-- Glass reflection -->
-  <ellipse cx="79" cy="84" rx="3.5" ry="2.5" fill="white" opacity="0.88"/>
+  <ellipse cx="79" cy="84" rx="3.5" ry="2.5" fill="white" opacity="0.9"/>
 </svg>

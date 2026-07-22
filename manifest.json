@@ -4,8 +4,8 @@
   "description": "Haz una foto a tu nevera y recibe 3 recetas al instante con IA.",
   "start_url": "/app",
   "display": "standalone",
-  "background_color": "#FEFAE0",
-  "theme_color": "#2D6A4F",
+  "background_color": "#0F1117",
+  "theme_color": "#00C896",
   "orientation": "portrait",
   "categories": ["food", "lifestyle", "utilities"],
   "icons": [
