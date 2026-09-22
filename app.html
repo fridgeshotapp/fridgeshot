@@ -3265,13 +3265,8 @@
     <div id="authProfileView" style="display:none">
       <h3>Mi cuenta</h3>
       <div class="auth-user-email" id="authUserEmail"></div>
-      <div id="proStatusRow" class="pro-status-row" style="display:none">
-        <span class="pro-status-label">⭐ Plan Pro activo</span>
-        <button class="pro-status-manage" onclick="openBillingPortal()">Gestionar</button>
-      </div>
-      <div id="freeStatusRow" style="display:none;margin-bottom:16px">
-        <button class="auth-primary-btn" onclick="closeAuthModal(); openProModal()">⭐ Hazte Pro — 7 días gratis</button>
-      </div>
+      <div id="proStatusRow" style="display:none"></div>
+      <div id="freeStatusRow" style="display:none"></div>
       <div class="auth-divider"></div>
       <button class="auth-primary-btn" style="background:#E63946" onclick="logOut()">Cerrar sesión</button>
       <button class="auth-secondary-btn" onclick="closeAuthModal()">Cancelar</button>
@@ -3310,7 +3305,7 @@
     }
     if (event === 'SIGNED_OUT') {
       posthog.reset();
-      _isPro = false;
+      _isPro = true;
       updateProUI();
     }
   });
@@ -4111,8 +4106,7 @@
     } catch (err) {
       stopLoading();
       if (err.isRateLimit) {
-        openProModal('Has usado tus 3 análisis semanales gratuitos. Con Pro tienes análisis ilimitados.');
-        updateAnalyzeCounter();
+        showToast('Demasiadas peticiones. Espera un momento e inténtalo de nuevo.');
         return;
       }
       showErrorScreen({
