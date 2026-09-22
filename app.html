@@ -842,9 +842,9 @@
     .recipe-change-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* ─── RECIPE PHOTO ────────────────────────────────────── */
-    .recipe-photo-banner { position: relative; width: 100%; height: 190px; background: rgba(255,255,255,0.07); border-radius: 14px; margin-bottom: 14px; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255,255,255,0.2); }
+    .recipe-photo-banner { position: relative; width: 100%; height: 190px; background: var(--green-pale); border-radius: 14px; margin-bottom: 14px; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--green-light); }
     .recipe-photo-banner img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
-    .recipe-photo-banner-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.55; pointer-events: none; }
+    .recipe-photo-banner-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); pointer-events: none; }
     .recipe-photo-banner-empty span:first-child { font-size: 36px; }
     .recipe-photo-banner-empty span:last-child { font-size: 13px; }
     .recipe-photo-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.55); color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
@@ -4860,7 +4860,7 @@
       const blob = base64ToBlob(base64, 'image/jpeg');
       const path = `${_currentUser.id}/${slugifyRecipeName(recipeName)}.jpg`;
       const { error } = await _supabase.storage.from('recipe-photos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
-      if (error) { console.error('Photo upload:', error); return null; }
+      if (error) { console.error('Photo upload:', error); showToast('Foto guardada localmente (fallo al subir a la nube)'); return null; }
       return _supabase.storage.from('recipe-photos').getPublicUrl(path).data.publicUrl;
     } catch (e) { console.error('Photo upload:', e); return null; }
   }
@@ -4893,7 +4893,6 @@
   function renderRecipePhotoSection(recipeName) {
     const container = document.getElementById('recipePhotoSection');
     if (!container) return;
-    if (!isSaved({ name: recipeName })) { container.innerHTML = ''; return; }
     const photo = getRecipePhoto(recipeName);
     const photoUrl = getRecipePhotoUrl(recipeName);
     const photoSrc = photo ? `data:image/jpeg;base64,${photo}` : photoUrl;
@@ -5340,7 +5339,7 @@
   function updateSessionWithRecipes(recipes) {
     const sessions = getSessions();
     if (sessions.length === 0) return;
-    sessions[0].recipes = recipes.map(r => ({ name: r.name, time_minutes: r.time_minutes, difficulty: r.difficulty }));
+    sessions[0].recipes = recipes.map(r => ({ ...r }));
     persistSessions(sessions);
   }
 
@@ -5355,11 +5354,14 @@
       const card = document.createElement('div');
       card.className = 'upload-history-card';
       card.onclick = () => loadSession(session);
+      const recipeLabel = session.recipes && session.recipes.length > 0
+        ? session.recipes.slice(0, 2).map(r => escapeHtml(r.name)).join(' · ') + (session.recipes.length > 2 ? ' +' + (session.recipes.length - 2) : '')
+        : escapeHtml(session.ingredients.slice(0, 4).join(', ')) + (session.ingredients.length > 4 ? '…' : '');
       card.innerHTML = `
         <div class="upload-history-thumb">${session.thumbnail ? `<img src="${escapeHtml(session.thumbnail)}" alt="">` : '🧊'}</div>
         <div class="upload-history-info">
           <div class="upload-history-date">${escapeHtml(session.date)} · ${session.photoCount} foto${session.photoCount > 1 ? 's' : ''}</div>
-          <div class="upload-history-ings">${escapeHtml(session.ingredients.slice(0, 4).join(', '))}${session.ingredients.length > 4 ? '…' : ''}</div>
+          <div class="upload-history-ings">${recipeLabel}</div>
         </div>
         <span style="opacity:0.4;font-size:18px">›</span>
       `;
@@ -5392,10 +5394,14 @@
 
         const info = document.createElement('div');
         info.className = 'history-info';
+        const hasRecipes = session.recipes && session.recipes.length > 0;
+        const recipeNames = hasRecipes
+          ? session.recipes.map(r => escapeHtml(r.name)).join(' · ')
+          : '';
         info.innerHTML = `
           <div class="history-date">${escapeHtml(session.date)} · ${session.photoCount} foto${session.photoCount > 1 ? 's' : ''}</div>
           <div class="history-ings">${escapeHtml(session.ingredients.slice(0, 5).join(', '))}${session.ingredients.length > 5 ? '…' : ''}</div>
-          <div class="history-meta">${session.ingredients.length} ingredientes</div>
+          ${hasRecipes ? `<div class="history-meta" style="color:var(--green);font-weight:600">🍽 ${recipeNames}</div>` : `<div class="history-meta">${session.ingredients.length} ingredientes · toca para regenerar</div>`}
         `;
 
         card.appendChild(thumb);
@@ -5410,10 +5416,16 @@
     state.ingredients = [...session.ingredients];
     state.mustInclude = [];
     state.images = [];
-    state.recipes = [];
-    renderIngredients();
-    renderPantryInIngredients();
-    showScreen('ingredients');
+    if (session.recipes && session.recipes.length > 0) {
+      state.recipes = session.recipes;
+      renderRecipes();
+      showScreen('recipes');
+    } else {
+      state.recipes = [];
+      renderIngredients();
+      renderPantryInIngredients();
+      showScreen('ingredients');
+    }
   }
 
   function startOver() {
