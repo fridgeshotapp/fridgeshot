@@ -5501,6 +5501,9 @@
   function obFinish() {
     localStorage.setItem('fridgeshot_onboarded', '1');
     document.getElementById('onboarding').classList.add('hidden');
+    if (!localStorage.getItem('cookie_consent')) {
+      document.getElementById('cookie-consent-bar').style.display = 'flex';
+    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -5684,7 +5687,6 @@
     const consent = localStorage.getItem('cookie_consent');
     const bar = document.getElementById('cookie-consent-bar');
     if (!consent) {
-      bar.style.display = 'flex';
       document.getElementById('cookie-accept-btn').addEventListener('click', function() {
         localStorage.setItem('cookie_consent', '1');
         bar.style.display = 'none';
@@ -5694,6 +5696,11 @@
         localStorage.setItem('cookie_consent', '0');
         bar.style.display = 'none';
       });
+      // Only show cookie bar after onboarding — otherwise it covers the ob-actions
+      // buttons (z-index 10000 vs 1000) and silently absorbs all taps
+      if (localStorage.getItem('fridgeshot_onboarded')) {
+        bar.style.display = 'flex';
+      }
     }
   })();
 
