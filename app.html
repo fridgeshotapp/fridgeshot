@@ -3368,17 +3368,28 @@
   async function signInWithGoogle() {
     const btn = document.querySelector('.google-signin-btn');
     if (btn) btn.disabled = true;
-    const { error } = await _supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/app',
-        queryParams: { prompt: 'select_account' }
-      }
-    });
-    if (error) {
+    if (!_supabase) {
       if (btn) btn.disabled = false;
-      showToast('Error al conectar con Google. Inténtalo de nuevo.');
-      console.error('Auth error:', error);
+      showToast('Error: autenticación no disponible. Recarga la página.');
+      return;
+    }
+    try {
+      const { error } = await _supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/app',
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (error) {
+        if (btn) btn.disabled = false;
+        showToast('Error Google: ' + error.message);
+        console.error('Auth error:', error);
+      }
+    } catch(e) {
+      if (btn) btn.disabled = false;
+      showToast('Error Google: ' + e.message);
+      console.error('Auth exception:', e);
     }
   }
 
