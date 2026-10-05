@@ -3757,33 +3757,39 @@
   function showScreen(name) {
     if (name !== 'detail') releaseWakeLock();
 
-    const prevName = _currentScreen;
-    const oldEl = document.getElementById('screen-' + prevName);
     const newEl = document.getElementById('screen-' + name);
     if (!newEl) return;
+
+    // Snapshot which screen is visually active NOW (before any cleanup)
+    const currentActiveEl = document.querySelector('.screen.active');
+    const prevName = _currentScreen;
+
+    // Cancel any in-flight transition and reset ALL screens to a clean state.
+    // This prevents ghost 'active' screens that capture clicks silently.
+    if (_navTransitionTimer) {
+      clearTimeout(_navTransitionTimer);
+      _navTransitionTimer = null;
+    }
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active', 'screen-leaving', 'screen-entering', 'nav-forward', 'nav-back');
+      s.style.display = '';
+    });
 
     // Determine direction
     const oldIdx = SCREEN_FLOW.indexOf(prevName);
     const newIdx = SCREEN_FLOW.indexOf(name);
     let isForward;
     if (oldIdx === -1 && newIdx === -1) isForward = true;
-    else if (oldIdx === -1) isForward = false;    // returning from special screen
-    else if (newIdx === -1) isForward = true;     // going to special screen
-    else if (name === 'loading') isForward = true; // loading is always a forward step
+    else if (oldIdx === -1) isForward = false;
+    else if (newIdx === -1) isForward = true;
+    else if (name === 'loading') isForward = true;
     else isForward = newIdx >= oldIdx;
 
     _currentScreen = name;
 
-    // Cancel any in-flight transition
-    if (_navTransitionTimer) {
-      clearTimeout(_navTransitionTimer);
-      _navTransitionTimer = null;
-      document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('screen-leaving', 'screen-entering', 'nav-forward', 'nav-back');
-        s.style.display = '';
-      });
-    }
-
+    // Use the visually active element as the leaving screen (correct even when
+    // a previous transition was interrupted mid-flight).
+    const oldEl = currentActiveEl || document.getElementById('screen-' + prevName);
     const dirClass = isForward ? 'nav-forward' : 'nav-back';
 
     if (oldEl && oldEl !== newEl) {
@@ -3793,14 +3799,13 @@
 
       _navTransitionTimer = setTimeout(() => {
         document.querySelectorAll('.screen').forEach(s => {
-          s.classList.remove('active', 'screen-leaving', 'screen-entering', 'nav-forward', 'nav-back');
+          s.classList.remove('screen-leaving', 'screen-entering', 'nav-forward', 'nav-back');
           s.style.display = '';
         });
         newEl.classList.add('active');
         _navTransitionTimer = null;
       }, 360);
     } else {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       newEl.classList.add('active');
     }
 
