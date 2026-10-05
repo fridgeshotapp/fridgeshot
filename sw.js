@@ -1,4 +1,4 @@
-const CACHE = 'fridgeshot-v10';
+const CACHE = 'fridgeshot-v11';
 const STATIC = ['/app', '/assets/logo.svg', '/assets/favicon.svg', '/manifest.json', '/assets/icon-180-v2.png', '/assets/icon-192-v2.png', '/assets/icon-512-v2.png'];
 
 self.addEventListener('install', e => {

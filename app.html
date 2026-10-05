@@ -3282,17 +3282,33 @@
 </div>
 
 <script>
+  // Show any uncaught JS error as a visible red banner so we can diagnose
+  window.onerror = function(msg, src, line) {
+    try {
+      const b = document.createElement('div');
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#c0392b;color:#fff;padding:10px 14px;font:13px/1.4 monospace;word-break:break-all';
+      b.textContent = 'JS Error: ' + msg + ' (L' + line + ')';
+      document.body.appendChild(b);
+    } catch(_) {}
+    return false;
+  };
+
   // ─────────────────────────────────────────────────────────
   //  SUPABASE AUTH
   // ─────────────────────────────────────────────────────────
-  const _supabase = window.supabase.createClient(
-    'https://amniuriaesnvgagfjhre.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbml1cmlhZXNudmdhZ2ZqaHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODk3NTIsImV4cCI6MjA5MTY2NTc1Mn0.3aw_SC6JiJDT5Jy68T_qTKFnnQvuhlWVLkMwq5cfml8'
-  );
+  let _supabase;
+  try {
+    _supabase = window.supabase.createClient(
+      'https://amniuriaesnvgagfjhre.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbml1cmlhZXNudmdhZ2ZqaHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODk3NTIsImV4cCI6MjA5MTY2NTc1Mn0.3aw_SC6JiJDT5Jy68T_qTKFnnQvuhlWVLkMwq5cfml8'
+    );
+  } catch(e) {
+    console.error('Supabase init failed:', e);
+  }
 
   let _currentUser = null;
 
-  _supabase.auth.onAuthStateChange(async (event, session) => {
+  if (_supabase) _supabase.auth.onAuthStateChange(async (event, session) => {
     _currentUser = session?.user || null;
     updateAuthUI();
     if (event === 'SIGNED_IN') {
@@ -3310,7 +3326,7 @@
     }
   });
 
-  _supabase.auth.getSession().then(({ data: { session } }) => {
+  if (_supabase) _supabase.auth.getSession().then(({ data: { session } }) => {
     _currentUser = session?.user || null;
     updateAuthUI();
     posthog.capture('app_opened', { is_logged_in: !!_currentUser });
