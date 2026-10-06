@@ -367,6 +367,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
+    .meal-grid { grid-template-columns: 1fr 1fr 1fr; }
     .diet-option {
       display: flex;
       align-items: center;
@@ -2870,7 +2871,7 @@
     </div>
 
     <label class="field-label">Tipo de comida</label>
-    <div class="diet-grid">
+    <div class="diet-grid meal-grid">
       <label class="diet-option meal-option" data-meal="desayuno">
         <span class="diet-icon">🌅</span>
         <span class="diet-label">Desayuno</span>
@@ -2882,10 +2883,6 @@
       <label class="diet-option meal-option" data-meal="cena">
         <span class="diet-icon">🌙</span>
         <span class="diet-label">Cena</span>
-      </label>
-      <label class="diet-option meal-option" data-meal="merienda">
-        <span class="diet-icon">🫖</span>
-        <span class="diet-label">Merienda</span>
       </label>
     </div>
 
