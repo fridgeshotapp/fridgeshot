@@ -30,14 +30,17 @@ There are no tests, linter, or CI configured.
 
 ```
 index.html          Landing page (SEO, waitlist, Stripe CTA)
-app.html            Main app (~5000 lines, single file, vanilla JS)
+app.html            Main app (~5700 lines, single file, vanilla JS)
+assets/
+  supabase.min.js   Supabase SDK v2 self-hosted (avoid CDN blocks on corporate networks)
 api/
-  _auth.js          isProUser(req) — checks Supabase user_subscriptions
+  _auth.js          isProUser(req) — always returns true (personal app, no Pro gate)
   _ratelimit.js     rateLimit() — Upstash Redis sliding window
   _sentry.js        withSentry(handler) — wraps all endpoints
   analyze.js        POST /api/analyze — GPT-4o Vision, detects ingredients
   recipes.js        POST /api/recipes — GPT-4o, generates 3 recipes
   chat.js           POST /api/chat — GPT-4o-mini, chef assistant
+  image.js          POST /api/image — DALL-E 3, generates recipe photo (b64, 5/day/IP)
   waitlist.js       POST /api/waitlist — email capture to Supabase
   stripe/
     checkout.js     POST /api/stripe/checkout — creates Stripe session
@@ -50,18 +53,23 @@ api/
 
 **Every endpoint is wrapped in `withSentry()`** from `_sentry.js`. Don't add new endpoints without it. `withSentry` only catches *uncaught* exceptions — if a handler catches an error itself (e.g. Stripe/Supabase errors that return a 4xx/5xx to the client), also call `captureError(err, {context})` from `_sentry.js` so it reaches Sentry.
 
-**Pro gate:** `isProUser(req)` in `_auth.js` reads `user_subscriptions.status` from Supabase. Pro users skip the analyze rate limit entirely. AirFryer/Thermomix in `recipes.js` and the chef chat in `chat.js` are Pro-only and enforced server-side.
+**Pro gate:** `_auth.js` currently returns `true` for all users — the app is personal-use only, all features unlocked. Do not add Pro gates without reverting this first.
 
-**Rate limits (free users):**
-- `/api/analyze` — 3 per 7 days per IP
-- `/api/recipes` — 30 per day per IP
-- `/api/chat` — 50 per day per IP
+**Rate limits (per IP):**
+- `/api/analyze` — 3 per 7 days
+- `/api/recipes` — 30 per day
+- `/api/chat` — 50 per day
+- `/api/image` — 5 per day
 
 **Stripe webhook** (`api/stripe/webhook.js`) requires raw body — Vercel's body parser is disabled via `module.exports.config = { api: { bodyParser: false } }`. Do not change this.
 
 **Spoonacular** is only called in `recipes.js` when `appliance` is `airfryer` or `thermomix`. Results are cached in Upstash Redis with 24h TTL.
 
-**CDN cache on HTML:** `vercel.json` pins `/`, `/app`, `*.html`, `/manifest.json` and `/sw.js` to `s-maxage=60` (and `sw.js` to `s-maxage=0`). Without this the Vercel edge cache holds stale HTML for days after a deploy — do not remove.
+**CDN cache on HTML:** `vercel.json` pins `/`, `*.html`, `/manifest.json` to `s-maxage=60`, `/app` to `s-maxage=0` (no CDN cache — stale edge responses caused the app to serve outdated JS), and `sw.js` to `s-maxage=0`. Do not raise `/app` above 0.
+
+**Supabase SDK is self-hosted** at `/assets/supabase.min.js` (loaded via `<script src="/assets/supabase.min.js">`). Do NOT switch back to the jsDelivr CDN — it gets blocked by corporate/strict network firewalls, causing `window.supabase` to be undefined and silently breaking all auth. To upgrade the SDK version, download the new UMD bundle from jsDelivr and replace the file.
+
+**`window.onerror` diagnostic banner** is active in `app.html` — any uncaught JS error shows a red banner at the top of the screen. Keep it; it has caught real production issues.
 
 ## Frontend
 
@@ -77,7 +85,7 @@ To regenerate the PNGs from `assets/logo.svg`, install `sharp` temporarily (`npm
 
 ## Analytics (PostHog)
 
-Events tracked in `app.html`: `photo_analyzed`, `recipes_generated`, `recipe_saved`, `recipe_unsaved`, `chat_opened`, `user_signed_in`. Anonymous users are tracked by device ID; on Google sign-in, PostHog identifies the user so all past events attach to the account.
+Events tracked in `app.html`: `photo_analyzed`, `recipes_generated`, `recipe_saved`, `recipe_unsaved`, `chat_opened`, `user_signed_in`, `recipe_photo_generated`. Anonymous users are tracked by device ID; on Google sign-in, PostHog identifies the user so all past events attach to the account.
 
 ## Supabase tables
 
