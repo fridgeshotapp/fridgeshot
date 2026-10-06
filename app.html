@@ -849,6 +849,9 @@
     .recipe-photo-banner-empty span:first-child { font-size: 36px; }
     .recipe-photo-banner-empty span:last-child { font-size: 13px; }
     .recipe-photo-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.55); color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+    .generate-photo-btn { width: 100%; margin-top: 10px; padding: 12px; background: transparent; border: 1.5px solid var(--green); color: var(--green); border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s, color 0.2s; }
+    .generate-photo-btn:hover { background: var(--green); color: white; }
+    .generate-photo-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .saved-card-thumb { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; flex-shrink: 0; margin-right: 4px; }
 
     /* ─── RECIPE DETAIL ───────────────────────────────────── */
@@ -4938,7 +4941,35 @@
             <span>📸</span>
             <span>Añade una foto de tu plato</span>
           </div>
-        </div>`;
+        </div>
+        <button class="generate-photo-btn" id="generatePhotoBtn" onclick="generateRecipePhoto()">✨ Generar foto con IA</button>`;
+    }
+  }
+
+  async function generateRecipePhoto() {
+    if (state.currentRecipeIndex === null) return;
+    const recipe = state.recipes[state.currentRecipeIndex];
+    const btn = document.getElementById('generatePhotoBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
+
+    try {
+      const res = await fetch('/api/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipeName: recipe.name,
+          ingredients: recipe.ingredients?.map(i => i.name || i) || []
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Error al generar imagen'); if (btn) { btn.disabled = false; btn.textContent = '✨ Generar foto con IA'; } return; }
+      saveRecipePhotoData(recipe.name, data.b64);
+      renderRecipePhotoSection(recipe.name);
+      renderSavedList();
+      posthog.capture('recipe_photo_generated', { recipe_name: recipe.name });
+    } catch (e) {
+      showToast('Error de red al generar imagen');
+      if (btn) { btn.disabled = false; btn.textContent = '✨ Generar foto con IA'; }
     }
   }
 

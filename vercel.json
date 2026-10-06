@@ -6,6 +6,7 @@
     "api/analyze.js": { "maxDuration": 30 },
     "api/recipes.js": { "maxDuration": 30 },
     "api/chat.js": { "maxDuration": 30 },
+    "api/image.js": { "maxDuration": 60 },
     "api/stripe/webhook.js": { "maxDuration": 15 }
   },
   "rewrites": [
