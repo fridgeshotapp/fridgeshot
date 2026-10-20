@@ -2,6 +2,14 @@
   "name": "fridgeshot",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\"",
+    "smoke": "node scripts/smoke.js",
+    "deploy": "node scripts/deploy.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@sentry/node": "^8.0.0",
     "@supabase/supabase-js": "^2.50.0",

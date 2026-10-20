@@ -65,6 +65,14 @@ module.exports = withSentry(async function handler(req, res) {
       'Has alcanzado el límite de 3 análisis por semana. Vuelve en unos días o hazte Pro para análisis ilimitados.'
     );
     if (!allowed) return;
+  } else {
+    // Tope antiabuso también para Pro: es la llamada más cara (GPT-4o Vision, hasta 5 fotos)
+    const allowed = await rateLimit(
+      req, res,
+      'analyze-pro', 20, '1 d',
+      'Has alcanzado el límite de 20 análisis por día. Vuelve mañana.'
+    );
+    if (!allowed) return;
   }
 
   if (!req.body || typeof req.body !== 'object') {

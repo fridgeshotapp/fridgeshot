@@ -1,0 +1,44 @@
+# CI de FridgeShot
+# - En cada push / PR: tests (barandillas de arquitectura + endpoints con OpenAI simulado).
+# - Cuando Vercel termina un deploy de producción: smoke test contra fridgeshot.app.
+#   Si falla, GitHub te manda un email ("Run failed") → revisa y haz rollback si hace falta.
+# - Cada día: smoke test, por si algo se rompe sin que haya habido deploy
+#   (servicio pausado, clave caducada, modelo retirado...).
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  deployment_status:
+  schedule:
+    - cron: '30 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  smoke-production:
+    if: >-
+      (github.event_name == 'deployment_status' &&
+       github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production') ||
+      github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/smoke.js https://fridgeshot.app

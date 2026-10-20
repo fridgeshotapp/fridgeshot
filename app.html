@@ -3283,15 +3283,45 @@
 
 <script>
   // Show any uncaught JS error as a visible red banner so we can diagnose
-  window.onerror = function(msg, src, line) {
+  window.onerror = function(msg, src, line, col, error) {
     try {
       const b = document.createElement('div');
       b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#c0392b;color:#fff;padding:10px 14px;font:13px/1.4 monospace;word-break:break-all';
       b.textContent = 'JS Error: ' + msg + ' (L' + line + ')';
       document.body.appendChild(b);
     } catch(_) {}
+    reportClientError({ kind: 'error', message: String(msg), source: src, line, col, stack: error?.stack });
     return false;
   };
+
+  // Promesas rechazadas sin catch (fetch, Supabase...): no disparan onerror
+  window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    reportClientError({ kind: 'unhandledrejection', message: String(r?.message || r), stack: r?.stack });
+  });
+
+  // Envía errores del navegador a Sentry vía /api/client-error.
+  // Máx. 5 por carga de página y sin repetir el mismo mensaje.
+  const _reportedErrors = new Set();
+  function reportClientError(info) {
+    try {
+      const message = (info.message || '').slice(0, 500);
+      // "Script error." = error de un script de otro origen (extensiones, etc.): sin info útil
+      if (!message || message === 'Script error.' || _reportedErrors.has(message) || _reportedErrors.size >= 5) return;
+      _reportedErrors.add(message);
+      fetch('/api/client-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          ...info, message,
+          stack: (info.stack || '').slice(0, 4000),
+          page: location.pathname,
+          screen: document.querySelector('.screen.active')?.id || null
+        })
+      }).catch(() => {});
+    } catch (_) {}
+  }
 
   // ─────────────────────────────────────────────────────────
   //  SUPABASE AUTH

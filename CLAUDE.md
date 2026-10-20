@@ -9,10 +9,12 @@ FridgeShot is a PWA that analyzes fridge photos with GPT-4o Vision and generates
 ## Deploy
 
 ```bash
-git push origin   # triggers auto-deploy on Vercel
+npm run deploy    # tests → push master+main → waits for prod to serve the commit → smoke test
 ```
 
-Do NOT run `git push origin master` — Vercel's Production Branch is `main`, not `master`, and the Vercel REST API does not expose a way to change it. Instead, the local git config has a dual refspec configured:
+`scripts/deploy.js` pushes with explicit refspecs (`master:master master:main`), so it doesn't depend on local git config. If the smoke test fails after deploy, it prints rollback steps (Vercel → Deployments → Instant Rollback). A `pre-push` hook (`.githooks/`, enabled with `git config core.hooksPath .githooks`; run that on any fresh clone) runs `npm test` before every push.
+
+Do NOT run `git push origin master` — Vercel's Production Branch is `main`, not `master`, and the Vercel REST API does not expose a way to change it. The local git config also has a dual refspec configured:
 
 ```
 [remote "origin"]
@@ -24,7 +26,15 @@ So `git push origin` (with no args) pushes `master` up as **both** `master` (pre
 
 To test API functions locally, install the Vercel CLI (`npm i -g vercel`) and run `vercel dev` — it reads `.env.local` for secrets.
 
-There are no tests, linter, or CI configured. `test/` only holds sample fridge images for manual testing of `/api/analyze`.
+## Tests, CI and monitoring
+
+- `npm test` — `node:test`, no extra deps (`tests/`): endpoints with mocked OpenAI (retries, model fallback, validation), rate limit/env helpers, and `tests/guardrails.test.js`, which enforces the architecture rules below (withSentry everywhere, `rateLimit(req, res, …)` signature, no direct OpenAI calls outside `_openai.js`, ≤12 functions for Vercel Hobby, ordered timeouts, CSP origins, non-async `onAuthStateChange`, self-hosted Supabase SDK, `apiPost` for API calls, SW STATIC files exist). When you add a rule to this file, add a guardrail test for it.
+- `npm run smoke [url]` — cheap checks against a live deploy (no OpenAI calls): pages load, every endpoint returns 400 on invalid input (a 5xx/503 means broken infra), `/api/health` ok.
+- `.github/workflows/ci.yml` — tests on every push/PR; smoke test after each Vercel production deploy (`deployment_status`) and daily.
+- `GET /api/health` (also served at `/api/keepalive` via rewrite) — checks env vars, Supabase, Upstash and that the configured OpenAI models exist; 200/503. It's the daily Vercel cron (keeps free-tier Supabase/Upstash alive) and the URL for the external uptime monitor.
+- Browser errors (`window.onerror` + `unhandledrejection`) are sent to Sentry through `POST /api/client-error`, tagged `source:frontend`.
+
+`test/` (singular) only holds sample fridge images for manual testing of `/api/analyze`.
 
 ## Architecture
 
@@ -36,15 +46,17 @@ manifest.json, sw.js                       PWA manifest + service worker
 assets/             Served in production (icons, logo, og-image, supabase.min.js)
 api/
   _auth.js          isProUser(req)
-  _ratelimit.js     rateLimit() — Upstash Redis sliding window (fail-open: Redis down/slow >2s → request allowed + Sentry)
+  _env.js           trims env vars on load (a pasted trailing \n broke Upstash once) + list of required vars
+  _ratelimit.js     rateLimit() — Upstash Redis sliding window; Redis down/slow >2s or unset on Vercel → per-instance in-memory limit + one Sentry event
   _openai.js        openaiPost()/chatJSON() — ALL OpenAI calls go through here (per-attempt timeout, retries on 429/5xx/network, fallback model on 404, shared deadline)
-  _sentry.js        withSentry(handler) — wraps all endpoints
+  _sentry.js        withSentry(handler) — wraps all endpoints; flushes captured events before the response ends (serverless freezes after responding)
+  health.js         GET  /api/health — service/env/model checks; daily cron + uptime monitor target
+  client-error.js   POST /api/client-error — browser JS errors → Sentry (20/h per IP)
   analyze.js        POST /api/analyze — GPT-4o Vision, detects ingredients
   recipes.js        POST /api/recipes — GPT-4o, generates 3 recipes
   chat.js           POST /api/chat — GPT-4o-mini, chef assistant
   image.js          POST /api/image — gpt-image-1-mini (fallback gpt-image-1, dall-e-3), returns JPEG b64
   waitlist.js       POST /api/waitlist — email capture to Supabase
-  keepalive.js      GET  /api/keepalive — daily Vercel cron, pings Supabase + Upstash so free-tier projects are not paused/archived (both died from inactivity in Oct 2026)
   stripe/           checkout, webhook, status, portal (dormant, see below)
 docs/               SERVICIOS.md (what each external service is + cost), guion-video-ads.md
 marketing/          Non-deployed marketing material (see Marketing)
@@ -62,12 +74,13 @@ Models are overridable without code changes via `OPENAI_MODEL_VISION`, `OPENAI_M
 
 **Stripe / Pro (€3.99/mo) is dormant, not removed** — endpoints, env vars and the `user_subscriptions` table stay because it will be reactivated. The landing shows no pricing, so nothing user-facing (copy, marketing) may promise paid features until then.
 
-**Rate limits (per IP, `rateLimit()` is a no-op if `UPSTASH_REDIS_REST_URL` is unset):**
-- `/api/analyze` — 3 per 7 days, but skipped for Pro users → currently **unlimited** because `isProUser()` is always true
+**Rate limits (per IP; no-op locally without `UPSTASH_REDIS_REST_URL`, in-memory fallback on Vercel):**
+- `/api/analyze` — 3 per 7 days for free users; Pro users (currently everyone, `isProUser()` is always true) get an anti-abuse cap of 20 per day
 - `/api/recipes` — 30 per day
 - `/api/chat` — 50 per day
 - `/api/image` — 5 per day
 - `/api/waitlist` — 5 per hour
+- `/api/client-error` — 20 per hour
 
 **Stripe webhook** (`api/stripe/webhook.js`) requires raw body — Vercel's body parser is disabled via `module.exports.config = { api: { bodyParser: false } }`. Do not change this.
 

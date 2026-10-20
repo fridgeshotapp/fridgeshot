@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/keepalive", "schedule": "0 9 * * *" }
+    { "path": "/api/health", "schedule": "0 9 * * *" }
   ],
   "functions": {
     "api/analyze.js": { "maxDuration": 60 },
@@ -11,6 +11,7 @@
   },
   "rewrites": [
     { "source": "/app", "destination": "/app.html" },
+    { "source": "/api/keepalive", "destination": "/api/health" },
     { "source": "/privacidad", "destination": "/privacidad.html" },
     { "source": "/terminos", "destination": "/terminos.html" }
   ],

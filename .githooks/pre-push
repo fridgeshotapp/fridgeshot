@@ -1,0 +1,12 @@
+#!/bin/sh
+# Ejecuta los tests antes de cada push: un push a main despliega directamente a producción.
+# Activado con:  git config core.hooksPath .githooks
+# Saltar en una emergencia (no recomendado):  git push --no-verify
+# npm run deploy ya ha ejecutado los tests justo antes del push
+[ "$FRIDGESHOT_TESTED" = "1" ] && exit 0
+echo "pre-push: ejecutando tests…"
+npm test --silent || {
+  echo ""
+  echo "✖ Los tests fallan: push cancelado (producción no se toca)."
+  exit 1
+}
