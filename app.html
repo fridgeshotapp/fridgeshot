@@ -3296,45 +3296,105 @@
   // ─────────────────────────────────────────────────────────
   //  SUPABASE AUTH
   // ─────────────────────────────────────────────────────────
+  // Errores de OAuth que Supabase/Google devuelven en la URL (?error=... o #error=...)
+  // Hay que leerlos ANTES de crear el cliente, porque detectSessionInUrl limpia la URL.
+  const _oauthUrlError = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search + '&' + window.location.hash.replace(/^#/, ''));
+      const err = params.get('error_description') || params.get('error');
+      return err ? decodeURIComponent(err.replace(/\+/g, ' ')) : null;
+    } catch { return null; }
+  })();
+
   let _supabase;
   try {
     _supabase = window.supabase.createClient(
       'https://amniuriaesnvgagfjhre.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbml1cmlhZXNudmdhZ2ZqaHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODk3NTIsImV4cCI6MjA5MTY2NTc1Mn0.3aw_SC6JiJDT5Jy68T_qTKFnnQvuhlWVLkMwq5cfml8'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtbml1cmlhZXNudmdhZ2ZqaHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODk3NTIsImV4cCI6MjA5MTY2NTc1Mn0.3aw_SC6JiJDT5Jy68T_qTKFnnQvuhlWVLkMwq5cfml8',
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          // implicit: los tokens vuelven en el #hash. Con PKCE el code_verifier vive en el
+          // localStorage del navegador que inició el login, y en iOS (PWA instalada → Safari)
+          // el retorno cae en otro contexto y el login falla.
+          flowType: 'implicit'
+        }
+      }
     );
   } catch(e) {
     console.error('Supabase init failed:', e);
   }
 
   let _currentUser = null;
+  let _lastSyncedUserId = null;
 
-  if (_supabase) _supabase.auth.onAuthStateChange(async (event, session) => {
+  // IMPORTANTE: este callback NO puede ser async ni hacer await de llamadas a Supabase.
+  // supabase-js lo ejecuta dentro de su lock de auth; cualquier _supabase.from()/getSession()
+  // esperado aquí se bloquea para siempre (login "colgado", sync que nunca termina).
+  // Todo el trabajo se difiere con setTimeout para que corra fuera del lock.
+  if (_supabase) _supabase.auth.onAuthStateChange((event, session) => {
+    const prevUserId = _currentUser?.id || null;
     _currentUser = session?.user || null;
     updateAuthUI();
-    if (event === 'SIGNED_IN') {
+
+    if (event === 'INITIAL_SESSION') {
+      setTimeout(() => {
+        posthog.capture('app_opened', { is_logged_in: !!_currentUser });
+        if (_oauthUrlError) {
+          showToast('No se pudo iniciar sesión con Google: ' + _oauthUrlError);
+        }
+        if (_currentUser) onUserAvailable(false);
+      }, 0);
+      return;
+    }
+
+    if (event === 'SIGNED_IN' && _currentUser && _currentUser.id !== prevUserId) {
+      // SIGNED_IN también se dispara al recuperar la pestaña o refrescar el token:
+      // solo tratamos como login nuevo cuando cambia el usuario.
+      setTimeout(() => onUserAvailable(true), 0);
+    }
+
+    if (event === 'SIGNED_OUT') {
+      _lastSyncedUserId = null;
+      setTimeout(() => {
+        posthog.reset();
+        _isPro = true;
+        updateProUI();
+      }, 0);
+    }
+  });
+
+  async function onUserAvailable(isFreshLogin) {
+    if (!_currentUser) return;
+    if (isFreshLogin) {
       closeAuthModal();
+      resetGoogleButton();
       posthog.identify(_currentUser.id, { email: _currentUser.email });
       posthog.capture('user_signed_in', { provider: _currentUser.app_metadata?.provider });
-      showToast('¡Sesión iniciada! Sincronizando... ☁️');
-      await syncAndLoadCloud();
-      await loadProStatus();
     }
-    if (event === 'SIGNED_OUT') {
-      posthog.reset();
-      _isPro = true;
-      updateProUI();
-    }
-  });
+    if (_lastSyncedUserId === _currentUser.id) return;
+    _lastSyncedUserId = _currentUser.id;
+    if (isFreshLogin) showToast('¡Sesión iniciada! Sincronizando... ☁️');
+    await loadProStatus();
+    await syncAndLoadCloud({ silent: !isFreshLogin });
+  }
 
-  if (_supabase) _supabase.auth.getSession().then(({ data: { session } }) => {
-    _currentUser = session?.user || null;
-    updateAuthUI();
-    posthog.capture('app_opened', { is_logged_in: !!_currentUser });
-    if (_currentUser) {
-      loadProStatus();
-      syncAndLoadCloud();
-    }
-  });
+  // Navegadores integrados de apps (TikTok, Instagram, Facebook...): Google bloquea
+  // el login OAuth dentro de ellos (error 403 disallowed_useragent).
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || '';
+    return /FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|Line\/|Snapchat|Twitter|LinkedInApp|Pinterest|; wv\)/i.test(ua);
+  }
+
+  function resetGoogleButton() {
+    const btn = document.querySelector('.google-signin-btn');
+    if (btn) btn.disabled = false;
+  }
+
+  // Si el usuario vuelve atrás desde Google (bfcache), el botón seguía deshabilitado
+  window.addEventListener('pageshow', resetGoogleButton);
 
   function updateAuthUI() {
     const btn = document.getElementById('authBtn');
@@ -3373,6 +3433,16 @@
       showToast('Error: autenticación no disponible. Recarga la página.');
       return;
     }
+    if (isInAppBrowser()) {
+      if (btn) btn.disabled = false;
+      showToast('Google no permite iniciar sesión desde el navegador de esta app. Abre fridgeshot.app en Safari o Chrome (menú ⋯ → "Abrir en el navegador").');
+      return;
+    }
+    if (!navigator.onLine) {
+      if (btn) btn.disabled = false;
+      showToast('Sin conexión. Conéctate a internet para iniciar sesión.');
+      return;
+    }
     try {
       const { error } = await _supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -3386,6 +3456,8 @@
         showToast('Error Google: ' + error.message);
         console.error('Auth error:', error);
       }
+      // Si la redirección no llega a producirse (bloqueada, popup, etc.), reactivar el botón
+      setTimeout(resetGoogleButton, 8000);
     } catch(e) {
       if (btn) btn.disabled = false;
       showToast('Error Google: ' + e.message);
@@ -3394,8 +3466,15 @@
   }
 
   async function logOut() {
-    await _supabase.auth.signOut();
+    try {
+      if (_supabase) await _supabase.auth.signOut();
+    } catch (e) {
+      // Aunque falle la llamada de red, cerramos la sesión local
+      console.error('signOut:', e);
+      try { await _supabase?.auth.signOut({ scope: 'local' }); } catch {}
+    }
     _currentUser = null;
+    _lastSyncedUserId = null;
     updateAuthUI();
     closeAuthModal();
     showToast('Sesión cerrada');
@@ -3434,21 +3513,34 @@
   }
 
   let _syncInProgress = false;
-  async function syncAndLoadCloud() {
-    if (!_currentUser) return;
+  async function syncAndLoadCloud({ silent = false } = {}) {
+    if (!_currentUser || !_supabase) return;
     if (_syncInProgress) return;
     _syncInProgress = true;
+    try {
+      const ok = await _syncAndLoadCloud();
+      if (!silent) showToast(ok ? '¡Datos sincronizados! ☁️' : 'No se pudo sincronizar con la nube. Tus datos siguen guardados en este dispositivo.');
+    } catch (e) {
+      console.error('syncAndLoadCloud:', e);
+      _lastSyncedUserId = null; // permitir reintentar en el próximo arranque/login
+      if (!silent) showToast('No se pudo sincronizar con la nube. Tus datos siguen guardados en este dispositivo.');
+    } finally {
+      _syncInProgress = false;
+    }
+  }
 
+  async function _syncAndLoadCloud() {
     // 1. Push local recipes to cloud (upsert — keeps existing cloud-only recipes)
-    const localSaved = getSavedRecipes();
-    for (const r of localSaved) {
-      const { error } = await _supabase.from('saved_recipes').upsert({
+    // Deduplicado por nombre: un upsert en bloque con dos filas iguales falla entero en Postgres
+    const localSaved = [...new Map(getSavedRecipes().filter(r => r?.name).map(r => [r.name, r])).values()];
+    if (localSaved.length > 0) {
+      const { error } = await _supabase.from('saved_recipes').upsert(localSaved.map(r => ({
         user_id: _currentUser.id, name: r.name,
         time_minutes: r.time_minutes || null, difficulty: r.difficulty || null,
         key_ingredients: r.key_ingredients || [], all_ingredients: r.all_ingredients || [],
         steps: r.steps || [], appliance: r.appliance || 'ninguno'
-      }, { onConflict: 'user_id,name' });
-      if (error) console.error('Error subiendo receta:', r.name, error.message);
+      })), { onConflict: 'user_id,name' });
+      if (error) console.error('Error subiendo recetas:', error.message);
     }
 
     // 2. Cloud recipes → overwrite local (cloud is authoritative source of truth)
@@ -3481,7 +3573,7 @@
     // PGRST116 = no row yet (new user) — not a real error
     if (prefsErr && prefsErr.code !== 'PGRST116') {
       console.error('user_preferences select:', prefsErr);
-      return;
+      return false;
     }
 
     // 4. Merge pantry: cloud union local (both matter, cloud items first)
@@ -3530,8 +3622,7 @@
     });
     if (upsertErr) console.error('user_preferences upsert:', upsertErr);
 
-    showToast('¡Datos sincronizados! ☁️');
-    _syncInProgress = false;
+    return !savedErr && !upsertErr;
   }
 
   // ─────────────────────────────────────────────────────────
@@ -4049,7 +4140,7 @@
         retryLabel: 'Intentar de nuevo',
         returnScreen: mode === 'recipes' ? 'ingredients' : 'upload'
       });
-    }, 50000);
+    }, 75000); // red de seguridad: por encima de API_TIMEOUTS (65s)
   }
 
   function stopLoading() {
@@ -4134,11 +4225,20 @@
       renderPantryInIngredients();
       showScreen('ingredients');
       saveSession();
+      if (state.ingredients.length === 0) {
+        showToast('No hemos reconocido ingredientes en la foto. Añádelos a mano o prueba con otra foto con más luz.');
+      }
 
     } catch (err) {
       stopLoading();
       if (err.isRateLimit) {
-        showToast('Demasiadas peticiones. Espera un momento e inténtalo de nuevo.');
+        showErrorScreen({
+          icon: '⏳',
+          title: 'Demasiadas peticiones',
+          msg: err.message,
+          retryLabel: 'Volver',
+          returnScreen: 'upload'
+        });
         return;
       }
       showErrorScreen({
@@ -4222,56 +4322,82 @@
   // ─────────────────────────────────────────────────────────
   //  BACKEND API CALLS
   // ─────────────────────────────────────────────────────────
-  async function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { ...options, signal: controller.signal });
-      return res;
-    } catch (e) {
-      if (e.name === 'AbortError') throw new Error('La solicitud tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.');
-      throw e;
-    } finally {
+  // Timeouts del cliente: siempre un poco MÁS que el maxDuration de la función en vercel.json
+  // (analyze/recipes/image 60s, chat 30s), para que sea el servidor quien corte y devuelva
+  // un error JSON legible en lugar de abortar a ciegas mientras la IA aún está respondiendo.
+  const API_TIMEOUTS = { analyze: 65000, recipes: 65000, image: 65000, chat: 32000 };
+
+  function statusMessage(status) {
+    if (status === 413) return 'Las fotos pesan demasiado. Prueba con menos fotos.';
+    if (status === 504) return 'La IA está tardando más de lo normal. Inténtalo de nuevo en unos segundos.';
+    if (status === 429) return 'Demasiadas peticiones. Espera un momento e inténtalo de nuevo.';
+    if (status >= 500) return 'El servidor ha tenido un problema. Inténtalo de nuevo.';
+    return 'Error al conectar con el servidor.';
+  }
+
+  // POST JSON con timeout y un reintento automático ante fallos transitorios
+  // (corte de red móvil, 502/503 de la plataforma). No reintenta timeouts ni 504:
+  // el servidor ya ha reintentado contra OpenAI y repetir solo duplica la espera.
+  async function apiPost(url, payload, { timeoutMs = 30000, retries = 1 } = {}) {
+    for (let attempt = 0; ; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      let res;
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      } catch (e) {
+        clearTimeout(timer);
+        if (e.name === 'AbortError') {
+          throw new Error('La solicitud tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.');
+        }
+        if (attempt < retries && navigator.onLine) { await new Promise(r => setTimeout(r, 1200)); continue; }
+        throw new Error(navigator.onLine
+          ? 'No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.'
+          : 'Sin conexión. Conéctate a internet e inténtalo de nuevo.');
+      }
       clearTimeout(timer);
+
+      // Vercel devuelve páginas de error en texto/HTML (413, 504, 502...): no asumir JSON
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        if (!data) throw new Error('Respuesta inesperada del servidor. Inténtalo de nuevo.');
+        return data;
+      }
+      if ((res.status === 502 || res.status === 503) && attempt < retries) {
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      const e = new Error(data?.error || statusMessage(res.status));
+      e.status = res.status;
+      e.retryAfter = data?.retry_after || Number(res.headers.get('Retry-After')) || null;
+      e.isRateLimit = res.status === 429;
+      throw e;
     }
+  }
+
+  function withRetryHint(e) {
+    if (e.isRateLimit && e.retryAfter) {
+      const mins = Math.ceil(e.retryAfter / 60);
+      e.message += mins > 60 ? ` Podrás volver a intentarlo en ~${Math.ceil(mins / 60)} h.` : ` Podrás volver a intentarlo en ~${mins} min.`;
+    }
+    return e;
   }
 
   async function callAnalyze(imagesBase64) {
-    const res = await fetchWithTimeout('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imagesBase64 })
-    }, 34000);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        const retryMins = err.retry_after ? Math.ceil(err.retry_after / 60) : null;
-        const retryMsg = retryMins ? ` Podrás volver a intentarlo en ~${retryMins} min.` : ' Vuelve mañana o hazte Pro para análisis ilimitados.';
-        const e = new Error((err.error || 'Has alcanzado el límite de análisis por hoy.') + retryMsg);
-        e.isRateLimit = true;
-        throw e;
-      }
-      throw new Error(err.error || 'Error al conectar con el servidor.');
-    }
-    return res.json();
+    try {
+      return await apiPost('/api/analyze', { imagesBase64 }, { timeoutMs: API_TIMEOUTS.analyze });
+    } catch (e) { throw withRetryHint(e); }
   }
 
   async function callRecipes(payload) {
-    const res = await fetchWithTimeout('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }, 38000);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        const retryMins = err.retry_after ? Math.ceil(err.retry_after / 60) : null;
-        const retryMsg = retryMins ? ` Inténtalo en ~${retryMins} min.` : ' Inténtalo más tarde.';
-        throw new Error((err.error || 'Has alcanzado el límite de recetas por hoy.') + retryMsg);
-      }
-      throw new Error(err.error || 'Error al conectar con el servidor.');
-    }
-    return res.json();
+    try {
+      return await apiPost('/api/recipes', payload, { timeoutMs: API_TIMEOUTS.recipes });
+    } catch (e) { throw withRetryHint(e); }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -4554,8 +4680,8 @@
       } else {
         throw new Error('Respuesta vacía');
       }
-    } catch {
-      showToast('No se pudo cambiar la receta. Inténtalo de nuevo.');
+    } catch (err) {
+      showToast(err?.status ? err.message : 'No se pudo cambiar la receta. Inténtalo de nuevo.');
       if (card.isConnected) {
         card.style.opacity = '';
         card.style.pointerEvents = '';
@@ -4865,7 +4991,14 @@
   function getRecipePhoto(name) { return getRecipePhotos()[name] || null; }
   function saveRecipePhotoData(name, base64) {
     const p = getRecipePhotos(); p[name] = base64;
-    localStorage.setItem('fridgeshot_recipe_photos', JSON.stringify(p));
+    try {
+      localStorage.setItem('fridgeshot_recipe_photos', JSON.stringify(p));
+      return true;
+    } catch (e) {
+      // QuotaExceededError: localStorage lleno (~5 MB). No romper el flujo.
+      console.error('saveRecipePhotoData:', e);
+      return false;
+    }
   }
   function getRecipePhotoUrls() { return JSON.parse(localStorage.getItem('fridgeshot_recipe_photo_urls') || '{}'); }
   function getRecipePhotoUrl(name) { return getRecipePhotoUrls()[name] || null; }
@@ -4953,22 +5086,31 @@
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
 
     try {
-      const res = await fetch('/api/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipeName: recipe.name,
-          ingredients: recipe.ingredients?.map(i => i.name || i) || []
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Error al generar imagen'); if (btn) { btn.disabled = false; btn.textContent = '✨ Generar foto con IA'; } return; }
-      saveRecipePhotoData(recipe.name, data.b64);
+      const data = await apiPost('/api/image', {
+        recipeName: recipe.name,
+        ingredients: recipe.key_ingredients?.length ? recipe.key_ingredients : (recipe.all_ingredients || [])
+      }, { timeoutMs: API_TIMEOUTS.image, retries: 0 });
+      if (!data.b64) throw new Error('Respuesta inesperada del servidor.');
+      // Recomprimir a 900px JPEG antes de guardar: localStorage tiene ~5 MB en total
+      const blob = base64ToBlob(data.b64, data.mime || 'image/jpeg');
+      const base64 = await resizeImage(blob, 900) || data.b64;
+      if (state.recipes[state.currentRecipeIndex]?.name !== recipe.name) return; // el usuario cambió de receta
+      if (!saveRecipePhotoData(recipe.name, base64)) {
+        showToast('No queda espacio en el dispositivo para guardar la foto. Borra alguna receta guardada.');
+      }
       renderRecipePhotoSection(recipe.name);
       renderSavedList();
       posthog.capture('recipe_photo_generated', { recipe_name: recipe.name });
+      if (_currentUser && isSaved(recipe)) {
+        const url = await uploadPhotoToSupabase(recipe.name, base64);
+        if (url) {
+          saveRecipePhotoUrl(recipe.name, url);
+          _supabase.from('saved_recipes').update({ photo_url: url })
+            .eq('user_id', _currentUser.id).eq('name', recipe.name).then(() => {});
+        }
+      }
     } catch (e) {
-      showToast('Error de red al generar imagen');
+      showToast(e.message || 'No se pudo generar la foto. Inténtalo de nuevo.');
       if (btn) { btn.disabled = false; btn.textContent = '✨ Generar foto con IA'; }
     }
   }
@@ -5700,9 +5842,9 @@
       removeTypingIndicator();
       _chatMessages.push({ role: 'assistant', content: reply });
       renderChatMessages();
-    } catch {
+    } catch (err) {
       removeTypingIndicator();
-      _chatMessages.push({ role: 'assistant', content: 'Lo siento, no pude responder. Inténtalo de nuevo.' });
+      _chatMessages.push({ role: 'assistant', content: 'Lo siento, no pude responder. ' + (err?.message || 'Inténtalo de nuevo.') });
       renderChatMessages();
     } finally {
       _chatSending = false;
@@ -5713,28 +5855,9 @@
   }
 
   async function callChat(recipe, messages, userMessage) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipe, messages, userMessage }),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      if (!res.ok) {
-        if (res.status === 429) throw new Error('Demasiados mensajes seguidos. Espera un momento.');
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Error al conectar con el chef IA.');
-      }
-      const data = await res.json();
-      return data.reply;
-    } catch (e) {
-      clearTimeout(timeout);
-      if (e.name === 'AbortError') throw new Error('La respuesta tardó demasiado. Inténtalo de nuevo.');
-      throw e;
-    }
+    const data = await apiPost('/api/chat', { recipe, messages, userMessage }, { timeoutMs: API_TIMEOUTS.chat });
+    if (!data.reply) throw new Error('No pude responder, inténtalo de nuevo.');
+    return data.reply;
   }
 
   // Cookie consent

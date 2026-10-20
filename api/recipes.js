@@ -4,6 +4,7 @@
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
 const { isProUser } = require('./_auth');
+const { chatJSON, sendError, MODELS } = require('./_openai');
 const { Redis } = require('@upstash/redis');
 
 let _redis;
@@ -21,7 +22,8 @@ async function getCachedSpoonacular(key) {
   try {
     const r = getRedis();
     if (!r) return null;
-    const val = await r.get(key);
+    // Timeout corto: la caché es opcional, nunca debe bloquear la generación de recetas
+    const val = await Promise.race([r.get(key), new Promise(resolve => setTimeout(() => resolve(null), 1500))]);
     return val ? (typeof val === 'string' ? JSON.parse(val) : val) : null;
   } catch { return null; }
 }
@@ -30,7 +32,7 @@ async function setCachedSpoonacular(key, data) {
   try {
     const r = getRedis();
     if (!r) return;
-    await r.set(key, JSON.stringify(data), { ex: 86400 }); // 24h TTL
+    await Promise.race([r.set(key, JSON.stringify(data), { ex: 86400 }), new Promise(resolve => setTimeout(resolve, 1500))]); // 24h TTL
   } catch { /* non-critical */ }
 }
 
@@ -70,6 +72,19 @@ async function getSpoonacularRecipes(ingredients, appliance) {
   } catch {
     return [];
   }
+}
+
+
+// Normaliza arrays opcionales del body: evita que un tipo inesperado rompa el prompt con un 500
+function strList(v, max = 20) {
+  return Array.isArray(v)
+    ? v.filter(x => typeof x === 'string').map(x => x.replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, 80)).filter(Boolean).slice(0, max)
+    : [];
+}
+function numList(v, min, max) {
+  return Array.isArray(v)
+    ? v.map(Number).filter(n => Number.isFinite(n) && n >= min && n <= max).slice(0, 10)
+    : [];
 }
 
 function buildApplianceBlock(appliance) {
@@ -125,7 +140,13 @@ module.exports = withSentry(async function handler(req, res) {
     return res.status(400).json({ error: 'Cuerpo de la petición inválido' });
   }
 
-  const { ingredients, mustInclude, dietPrefs, timeLimits, servingsOptions, mealTypes, appliance, count, excludeNames } = req.body;
+  const { ingredients, appliance, count } = req.body;
+  const mustInclude = strList(req.body.mustInclude);
+  const dietPrefs = strList(req.body.dietPrefs);
+  const mealTypes = strList(req.body.mealTypes);
+  const excludeNames = strList(req.body.excludeNames, 30);
+  const timeLimits = numList(req.body.timeLimits, 5, 240);
+  const servingsOptions = numList(req.body.servingsOptions, 1, 20);
 
   // AirFryer and Thermomix are Pro-only features — verify server-side
   if (appliance && appliance !== 'ninguno') {
@@ -160,7 +181,7 @@ module.exports = withSentry(async function handler(req, res) {
     return res.status(500).json({ error: 'Servicio no configurado correctamente' });
   }
 
-  const dietText = dietPrefs && dietPrefs.length > 0
+  const dietText = dietPrefs.length > 0
     ? `Preferencias dietéticas: ${dietPrefs.join(', ')}.`
     : 'Sin restricciones dietéticas.';
 
@@ -246,52 +267,35 @@ Responde SOLO con este JSON:
 
 difficulty solo puede ser: "fácil", "medio" o "difícil".`;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 35_000);
-
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemMsg },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: recipeCount === 1 ? 800 : (appliance === 'thermomix' ? 2500 : 2000),
-        response_format: { type: 'json_object' }
-      }),
-      signal: controller.signal
+    const content = await chatJSON([
+      { role: 'system', content: systemMsg },
+      { role: 'user', content: prompt }
+    ], {
+      endpoint: 'recipes',
+      models: MODELS.recipes(),
+      max_tokens: recipeCount === 1 ? 1200 : (appliance === 'thermomix' ? 3000 : 2600),
+      deadlineMs: 52_000,
+      attemptTimeoutMs: 40_000,
     });
 
-    clearTimeout(timeout);
+    const recipes = (Array.isArray(content.recipes) ? content.recipes : [])
+      .filter(r => r && typeof r.name === 'string' && r.name.trim() && Array.isArray(r.steps) && r.steps.length > 0)
+      .map(r => ({
+        name: r.name.trim(),
+        time_minutes: Number(r.time_minutes) || null,
+        difficulty: ['fácil', 'medio', 'difícil'].includes(r.difficulty) ? r.difficulty : 'medio',
+        key_ingredients: Array.isArray(r.key_ingredients) ? r.key_ingredients.map(String) : [],
+        all_ingredients: Array.isArray(r.all_ingredients) ? r.all_ingredients.map(String) : [],
+        steps: r.steps.map(String),
+      }));
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) return res.status(429).json({ error: 'Demasiadas solicitudes, espera un momento e inténtalo de nuevo' });
-      if (status === 401) return res.status(500).json({ error: 'Servicio no configurado correctamente' });
-      return res.status(500).json({ error: 'No se pudieron generar las recetas, inténtalo de nuevo' });
+    if (recipes.length === 0) {
+      return res.status(502).json({ error: 'La IA no ha devuelto recetas válidas. Inténtalo de nuevo.' });
     }
 
-    const data = await response.json();
-    let content;
-    try {
-      content = JSON.parse(data.choices[0].message.content);
-    } catch {
-      return res.status(500).json({ error: 'Respuesta inesperada del servicio de IA' });
-    }
-
-    return res.status(200).json({ recipes: content.recipes || [] });
-
+    return res.status(200).json({ recipes });
   } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: 'La generación tardó demasiado. Inténtalo de nuevo.' });
-    }
-    return res.status(500).json({ error: 'Error de conexión con el servicio de IA' });
+    return sendError(res, err);
   }
 });

@@ -4,6 +4,7 @@
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
 const { isProUser } = require('./_auth');
+const { chatJSON, sendError, MODELS } = require('./_openai');
 
 function buildPrompt(n) {
   return `Recibes ${n} foto${n > 1 ? 's' : ''} de nevera, despensa o ingredientes.
@@ -23,6 +24,13 @@ Responde SOLO con este JSON, sin texto adicional:
 }
 
 Si no detectas ninguna marca con certeza, devuelve "detected_brands" como array vacío [].`;
+}
+
+function mimeFromBase64(b64) {
+  if (b64.startsWith('iVBOR')) return 'image/png';
+  if (b64.startsWith('UklGR')) return 'image/webp';
+  if (b64.startsWith('R0lGOD')) return 'image/gif';
+  return 'image/jpeg';
 }
 
 const BASE64_RE = /^[A-Za-z0-9+/]+=*$/;
@@ -88,74 +96,38 @@ module.exports = withSentry(async function handler(req, res) {
     }
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Servicio no configurado correctamente' });
-  }
-
   const imageContent = imagesBase64.map(b64 => ({
     type: 'image_url',
     image_url: {
-      url: `data:image/jpeg;base64,${b64}`,
+      url: `data:${mimeFromBase64(b64)};base64,${b64}`,
       detail: 'high'
     }
   }));
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              ...imageContent,
-              { type: 'text', text: buildPrompt(imagesBase64.length) }
-            ]
-          }
-        ],
-        max_tokens: 2500,
-        response_format: { type: 'json_object' }
-      }),
-      signal: controller.signal
+    const content = await chatJSON([
+      {
+        role: 'user',
+        content: [
+          ...imageContent,
+          { type: 'text', text: buildPrompt(imagesBase64.length) }
+        ]
+      }
+    ], {
+      endpoint: 'analyze',
+      models: MODELS.vision(),
+      max_tokens: 2500,
+      temperature: 0.2,
+      deadlineMs: 52_000,
+      attemptTimeoutMs: 40_000,
     });
 
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const status = response.status;
-      if (status === 429) return res.status(429).json({ error: 'Demasiadas solicitudes, espera un momento e inténtalo de nuevo' });
-      if (status === 401) return res.status(500).json({ error: 'Servicio no configurado correctamente' });
-      return res.status(500).json({ error: 'Error al analizar las imágenes, inténtalo de nuevo' });
-    }
-
-    const data = await response.json();
-    let content;
-    try {
-      content = JSON.parse(data.choices[0].message.content);
-    } catch {
-      return res.status(500).json({ error: 'Respuesta inesperada del servicio de IA' });
-    }
-
+    const all = Array.isArray(content.all_ingredients) ? content.all_ingredients : [];
     return res.status(200).json({
-      all_ingredients: content.all_ingredients || [],
-      detected_brands: content.detected_brands || []
+      all_ingredients: all.filter(i => typeof i === 'string' && i.trim()).map(i => i.trim()),
+      detected_brands: Array.isArray(content.detected_brands) ? content.detected_brands : []
     });
-
   } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: 'El análisis tardó demasiado. Inténtalo con menos fotos o una conexión más rápida.' });
-    }
-    return res.status(500).json({ error: 'Error de conexión con el servicio de IA' });
+    return sendError(res, err);
   }
 });

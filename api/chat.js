@@ -4,6 +4,7 @@
 const { rateLimit } = require('./_ratelimit');
 const { withSentry } = require('./_sentry');
 const { isProUser } = require('./_auth');
+const { openaiPost, sendError, MODELS } = require('./_openai');
 
 module.exports = withSentry(async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -52,9 +53,9 @@ module.exports = withSentry(async function handler(req, res) {
     `Receta: ${recipe.name}`,
     `Tiempo: ${recipe.time_minutes} minutos`,
     `Dificultad: ${recipe.difficulty}`,
-    `Ingredientes: ${(recipe.all_ingredients || []).join(', ')}`,
-    `Pasos: ${(recipe.steps || []).join(' | ')}`
-  ].join('\n');
+    `Ingredientes: ${(Array.isArray(recipe.all_ingredients) ? recipe.all_ingredients : []).join(', ')}`,
+    `Pasos: ${(Array.isArray(recipe.steps) ? recipe.steps : []).join(' | ')}`
+  ].join('\n').slice(0, 6000);
 
   const systemMsg = `Eres un chef experto y amigable ayudando a cocinar una receta concreta. El usuario está cocinando esta receta y tiene dudas:
 
@@ -71,52 +72,29 @@ Responde de forma breve y práctica. Si pregunta por sustituciones, tiempos, té
       content: String(m.content).slice(0, 500)
     }));
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
-
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemMsg },
-          ...historyMessages,
-          { role: 'user', content: userMessage.trim() }
-        ],
-        max_tokens: 400,
-        temperature: 0.7
-      }),
-      signal: controller.signal
+    const data = await openaiPost('/v1/chat/completions', {
+      messages: [
+        { role: 'system', content: systemMsg },
+        ...historyMessages,
+        { role: 'user', content: userMessage.trim() }
+      ],
+      max_tokens: 400,
+      temperature: 0.7
+    }, {
+      endpoint: 'chat',
+      models: MODELS.chat(),
+      deadlineMs: 25_000,
+      attemptTimeoutMs: 15_000,
     });
 
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) return res.status(429).json({ error: 'Demasiadas solicitudes, espera un momento' });
-      if (status === 401) return res.status(500).json({ error: 'Servicio no configurado correctamente' });
-      return res.status(500).json({ error: 'No pude responder, inténtalo de nuevo' });
-    }
-
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content?.trim();
-
+    const reply = data?.choices?.[0]?.message?.content?.trim();
     if (!reply) {
-      return res.status(500).json({ error: 'Respuesta inesperada del servicio' });
+      return res.status(502).json({ error: 'No pude responder, inténtalo de nuevo' });
     }
 
     return res.status(200).json({ reply });
-
   } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: 'La respuesta tardó demasiado. Inténtalo de nuevo.' });
-    }
-    return res.status(500).json({ error: 'Error de conexión con el servicio' });
+    return sendError(res, err);
   }
 });

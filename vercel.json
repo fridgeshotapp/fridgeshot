@@ -1,10 +1,10 @@
 {
   "crons": [
-    { "path": "/api/keepalive", "schedule": "0 9 */5 * *" }
+    { "path": "/api/keepalive", "schedule": "0 9 * * *" }
   ],
   "functions": {
-    "api/analyze.js": { "maxDuration": 30 },
-    "api/recipes.js": { "maxDuration": 30 },
+    "api/analyze.js": { "maxDuration": 60 },
+    "api/recipes.js": { "maxDuration": 60 },
     "api/chat.js": { "maxDuration": 30 },
     "api/image.js": { "maxDuration": 60 },
     "api/stripe/webhook.js": { "maxDuration": 15 }
@@ -24,7 +24,7 @@
         { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
         { "key": "X-DNS-Prefetch-Control", "value": "on" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://amniuriaesnvgagfjhre.supabase.co https://eu.i.posthog.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self' https://amniuriaesnvgagfjhre.supabase.co https://accounts.google.com" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://amniuriaesnvgagfjhre.supabase.co wss://amniuriaesnvgagfjhre.supabase.co https://eu.i.posthog.com https://eu-assets.i.posthog.com; img-src 'self' data: blob: https://lh3.googleusercontent.com https://amniuriaesnvgagfjhre.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self' https://amniuriaesnvgagfjhre.supabase.co https://accounts.google.com" }
       ]
     },
     {

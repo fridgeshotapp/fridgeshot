@@ -24,42 +24,50 @@ So `git push origin` (with no args) pushes `master` up as **both** `master` (pre
 
 To test API functions locally, install the Vercel CLI (`npm i -g vercel`) and run `vercel dev` — it reads `.env.local` for secrets.
 
-There are no tests, linter, or CI configured.
+There are no tests, linter, or CI configured. `test/` only holds sample fridge images for manual testing of `/api/analyze`.
 
 ## Architecture
 
 ```
-index.html          Landing page (SEO, waitlist, Stripe CTA)
-app.html            Main app (~5700 lines, single file, vanilla JS)
-assets/
-  supabase.min.js   Supabase SDK v2 self-hosted (avoid CDN blocks on corporate networks)
+index.html          Landing page (SEO, waitlist) — no pricing/Pro shown
+app.html            Main app (~5800 lines, single file, vanilla JS)
+404.html, privacidad.html, terminos.html   Static pages (/privacidad, /terminos via rewrites)
+manifest.json, sw.js                       PWA manifest + service worker
+assets/             Served in production (icons, logo, og-image, supabase.min.js)
 api/
-  _auth.js          isProUser(req) — always returns true (personal app, no Pro gate)
-  _ratelimit.js     rateLimit() — Upstash Redis sliding window
+  _auth.js          isProUser(req)
+  _ratelimit.js     rateLimit() — Upstash Redis sliding window (fail-open: Redis down/slow >2s → request allowed + Sentry)
+  _openai.js        openaiPost()/chatJSON() — ALL OpenAI calls go through here (per-attempt timeout, retries on 429/5xx/network, fallback model on 404, shared deadline)
   _sentry.js        withSentry(handler) — wraps all endpoints
   analyze.js        POST /api/analyze — GPT-4o Vision, detects ingredients
   recipes.js        POST /api/recipes — GPT-4o, generates 3 recipes
   chat.js           POST /api/chat — GPT-4o-mini, chef assistant
-  image.js          POST /api/image — DALL-E 3, generates recipe photo (b64, 5/day/IP)
+  image.js          POST /api/image — gpt-image-1-mini (fallback gpt-image-1, dall-e-3), returns JPEG b64
   waitlist.js       POST /api/waitlist — email capture to Supabase
-  stripe/
-    checkout.js     POST /api/stripe/checkout — creates Stripe session
-    webhook.js      POST /api/stripe/webhook — updates user_subscriptions
-    status.js       GET  /api/stripe/status — returns subscription status
-    portal.js       POST /api/stripe/portal — opens billing portal
+  keepalive.js      GET  /api/keepalive — daily Vercel cron, pings Supabase + Upstash so free-tier projects are not paused/archived (both died from inactivity in Oct 2026)
+  stripe/           checkout, webhook, status, portal (dormant, see below)
+docs/               SERVICIOS.md (what each external service is + cost), guion-video-ads.md
+marketing/          Non-deployed marketing material (see Marketing)
 ```
+
+`vercel.json` sets `maxDuration` 60s for analyze/recipes/image, 30s for chat, 15s for the Stripe webhook. Timeouts must stay ordered: OpenAI deadline in the handler (52-55s) < `maxDuration` < client `API_TIMEOUTS` in `app.html` (65s) < loading-screen safety timeout (75s). If you change one, check the others.
+
+Models are overridable without code changes via `OPENAI_MODEL_VISION`, `OPENAI_MODEL_RECIPES`, `OPENAI_MODEL_CHAT`, `OPENAI_MODEL_IMAGE` (comma-separated, tried before the defaults in `MODELS` in `_openai.js`).
 
 ## Key patterns
 
 **Every endpoint is wrapped in `withSentry()`** from `_sentry.js`. Don't add new endpoints without it. `withSentry` only catches *uncaught* exceptions — if a handler catches an error itself (e.g. Stripe/Supabase errors that return a 4xx/5xx to the client), also call `captureError(err, {context})` from `_sentry.js` so it reaches Sentry.
 
-**Pro gate:** `_auth.js` currently returns `true` for all users — the app is personal-use only, all features unlocked. Do not add Pro gates without reverting this first.
+**Pro gate:** `_auth.js` currently returns `true` for all users — all features unlocked. Do not add Pro gates without reverting this first.
 
-**Rate limits (per IP):**
-- `/api/analyze` — 3 per 7 days
+**Stripe / Pro (€3.99/mo) is dormant, not removed** — endpoints, env vars and the `user_subscriptions` table stay because it will be reactivated. The landing shows no pricing, so nothing user-facing (copy, marketing) may promise paid features until then.
+
+**Rate limits (per IP, `rateLimit()` is a no-op if `UPSTASH_REDIS_REST_URL` is unset):**
+- `/api/analyze` — 3 per 7 days, but skipped for Pro users → currently **unlimited** because `isProUser()` is always true
 - `/api/recipes` — 30 per day
 - `/api/chat` — 50 per day
 - `/api/image` — 5 per day
+- `/api/waitlist` — 5 per hour
 
 **Stripe webhook** (`api/stripe/webhook.js`) requires raw body — Vercel's body parser is disabled via `module.exports.config = { api: { bodyParser: false } }`. Do not change this.
 
@@ -67,15 +75,27 @@ api/
 
 **CDN cache on HTML:** `vercel.json` pins `/`, `*.html`, `/manifest.json` to `s-maxage=60`, `/app` to `s-maxage=0` (no CDN cache — stale edge responses caused the app to serve outdated JS), and `sw.js` to `s-maxage=0`. Do not raise `/app` above 0.
 
+**Content-Security-Policy** is set in `vercel.json` for all routes. Any new external origin (script CDN, analytics, ad pixel like TikTok/Meta, image host, API) must be added to the matching CSP directive or the browser silently blocks it.
+
+**Service worker** (`sw.js`, cache `fridgeshot-v12`): `/api/*` is network-only (returns a 503 JSON offline error), navigations are network-first, static files cache-first. Bump `CACHE` whenever a file in its `STATIC` list changes. The SW only handles same-origin requests — never route Supabase/Google/PostHog through it.
+
+**Supabase auth callback must stay synchronous:** never make the `onAuthStateChange` callback `async` or `await` Supabase calls inside it — supabase-js runs it under its auth lock and any awaited `_supabase.from()`/`getSession()` deadlocks (login hangs, sync never ends). Defer work with `setTimeout(..., 0)` (see `onUserAvailable`). Auth uses `flowType: 'implicit'` on purpose (PKCE breaks when the OAuth return lands in a different browser context, e.g. iOS PWA → Safari). Google blocks OAuth inside in-app browsers (TikTok/Instagram) — `isInAppBrowser()` shows a hint instead.
+
 **Supabase SDK is self-hosted** at `/assets/supabase.min.js` (loaded via `<script src="/assets/supabase.min.js">`). Do NOT switch back to the jsDelivr CDN — it gets blocked by corporate/strict network firewalls, causing `window.supabase` to be undefined and silently breaking all auth. To upgrade the SDK version, download the new UMD bundle from jsDelivr and replace the file.
 
 **`window.onerror` diagnostic banner** is active in `app.html` — any uncaught JS error shows a red banner at the top of the screen. Keep it; it has caught real production issues.
 
 ## Frontend
 
-`app.html` is a single ~5700-line file with three `:root` blocks stacked in one `<style>`: an original light-green block (line ~41), a "Redesign 2.0" warm block (line ~2103), and the **Dark Premium** block (line ~2363) that wins the cascade. When adjusting colors, edit the Dark Premium block — the earlier ones are dead but still there because 2300+ lines of CSS in between hardcode individual overrides that would break if the tokens vanished.
+`app.html` stacks several `:root` blocks in one `<style>`: the original light-green block (top of the style tag), the "FRIDGESHOT 2.0 — REDESIGN VISUAL" warm block, and the **"DARK PREMIUM THEME"** block (search for that comment) that wins the cascade. When adjusting colors, edit the Dark Premium block — the earlier ones are dead but still there because thousands of lines of CSS in between hardcode individual overrides that would break if the tokens vanished.
 
 The landing (`index.html`) uses the same palette (`#00C896` / `#F97316` / `#0F1117` / `#1A1D27` / `#F0F2F5` / `#8B949E`) as loose vars declared inline in its `<style>`.
+
+## Marketing (marketing/)
+
+All marketing material lives in `marketing/` (`tiktok/`, `reddit/`), never in `/assets/` — that folder is deployed to production.
+
+`marketing/tiktok/` is for short TikTok reels (in progress). Script: `docs/guion-video-ads.md` (hook = "no sé qué cocinar", close with "gratis, sin tarjeta"). Planned flow: AI hook clips generated manually in Kling 3.0 (free tier, no API — generate at klingai.com, save to `marketing/tiktok/assets/raw/`) + real app screen recordings + TTS narration (ElevenLabs) + captions, assembled with Remotion into 9:16 MP4.
 
 ## PWA icons
 
@@ -85,7 +105,7 @@ To regenerate the PNGs from `assets/logo.svg`, install `sharp` temporarily (`npm
 
 ## Analytics (PostHog)
 
-Events tracked in `app.html`: `photo_analyzed`, `recipes_generated`, `recipe_saved`, `recipe_unsaved`, `chat_opened`, `user_signed_in`, `recipe_photo_generated`. Anonymous users are tracked by device ID; on Google sign-in, PostHog identifies the user so all past events attach to the account.
+Events tracked in `app.html` (via `capture(...)`): `app_opened`, `upload_screen_viewed`, `analyze_started`, `photo_analyzed`, `recipes_generated`, `recipe_detail_opened`, `recipe_saved`, `recipe_unsaved`, `recipe_shared`, `recipe_photo_generated`, `chat_opened`, `user_signed_in`, `pro_modal_opened`, `checkout_started`. Anonymous users are tracked by device ID; on Google sign-in, PostHog identifies the user so all past events attach to the account.
 
 ## Supabase tables
 
@@ -121,7 +141,12 @@ SENTRY_DSN
 | Vercel | Hosting + serverless | vercel.com → fridgeshot |
 | OpenAI | Vision + recipes (GPT-4o) + chat (GPT-4o-mini) | platform.openai.com |
 | Supabase | Auth (Google OAuth) + DB | supabase.com → amniuriaesnvgagfjhre |
-| Stripe | Pro subscriptions (€3.99/mo) | dashboard.stripe.com |
+| Stripe | Pro subscriptions (€3.99/mo, dormant) | dashboard.stripe.com |
 | Upstash Redis | Rate limiting + Spoonacular cache | upstash.com |
-| PostHog | Analytics | posthog.com (project key: phc_yoR4Z9wD2moKZKKvdYsan9dmuyut74crAVxyeAidonKF) |
+| Spoonacular | Airfryer/Thermomix recipes | spoonacular.com |
+| PostHog | Analytics (EU host) | posthog.com (project key: phc_yoR4Z9wD2moKZKKvdYsan9dmuyut74crAVxyeAidonKF) |
 | Sentry | Error tracking (active) | sentry.io |
+
+## MCP servers (.mcp.json)
+
+`.mcp.json` (gitignored — contains tokens, never commit it) configures: Supabase (read-only), GitHub, **Stripe with a live key and all tools**, Vercel, Sentry. Never run Stripe write operations (refunds, prices, customers, subscriptions) without explicit user confirmation.

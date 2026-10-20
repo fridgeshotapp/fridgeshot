@@ -4,6 +4,7 @@
 
 const { Ratelimit } = require('@upstash/ratelimit');
 const { Redis } = require('@upstash/redis');
+const { captureError } = require('./_sentry');
 
 let redis;
 function getRedis() {
@@ -32,7 +33,13 @@ function getLimiter(key, requests, window) {
  * Comprueba el rate limit para una petición.
  * Devuelve true si se permite, false si se ha superado el límite
  * (y en ese caso ya envía la respuesta 429 automáticamente).
+ *
+ * Si Redis falla o tarda más de REDIS_TIMEOUT_MS, se deja pasar la petición
+ * (fail-open) y se reporta a Sentry: un fallo de Upstash no debe tumbar la app.
  */
+const REDIS_TIMEOUT_MS = 2_000;
+let reportedRedisError = false;
+
 async function rateLimit(req, res, key, requests, window, errorMsg) {
   if (!process.env.UPSTASH_REDIS_REST_URL) {
     // Sin configurar: dejamos pasar (útil en desarrollo sin Redis)
@@ -40,11 +47,14 @@ async function rateLimit(req, res, key, requests, window, errorMsg) {
   }
 
   const forwarded = req.headers['x-forwarded-for'] || '';
-  const ip = forwarded.split(',')[0].trim() || req.socket?.remoteAddress || '127.0.0.1';
+  const ip = req.headers['x-real-ip'] || forwarded.split(',')[0].trim() || req.socket?.remoteAddress || '127.0.0.1';
 
   try {
     const limiter = getLimiter(key, requests, window);
-    const { success, remaining, reset } = await limiter.limit(ip);
+    const { success, remaining, reset } = await Promise.race([
+      limiter.limit(ip),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('ratelimit timeout')), REDIS_TIMEOUT_MS)),
+    ]);
 
     if (!success) {
       const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
@@ -61,9 +71,13 @@ async function rateLimit(req, res, key, requests, window, errorMsg) {
     res.setHeader('X-RateLimit-Reset', String(reset ?? 0));
     return true;
   } catch (err) {
-    console.error('[ratelimit] Redis error — returning 503:', err?.message);
-    res.status(503).json({ error: 'Servicio temporalmente no disponible. Inténtalo en unos segundos.' });
-    return false;
+    console.error('[ratelimit] Redis error — failing open:', err?.message);
+    // Un aviso por instancia: si Redis está caído, no agotar la cuota de Sentry con cada petición
+    if (!reportedRedisError) {
+      reportedRedisError = true;
+      captureError(err, { endpoint: key, where: 'ratelimit' });
+    }
+    return true;
   }
 }
 

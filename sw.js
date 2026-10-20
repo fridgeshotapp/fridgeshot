@@ -1,5 +1,5 @@
-const CACHE = 'fridgeshot-v11';
-const STATIC = ['/app', '/assets/logo.svg', '/assets/favicon.svg', '/manifest.json', '/assets/icon-180-v2.png', '/assets/icon-192-v2.png', '/assets/icon-512-v2.png'];
+const CACHE = 'fridgeshot-v12';
+const STATIC = ['/app', '/assets/logo.svg', '/assets/favicon.svg', '/manifest.json', '/assets/icon-180-v2.png', '/assets/icon-192-v2.png', '/assets/icon-512-v2.png', '/assets/supabase.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
@@ -14,8 +14,14 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // Solo gestionamos peticiones del propio origen. Supabase (auth/DB/storage), Google,
+  // PostHog y fuentes van directas a la red sin pasar por el SW.
+  if (url.origin !== self.location.origin) return;
+
   // API calls: always network, return offline error if failed
-  if (e.request.url.includes('/api/')) {
+  if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request).catch(() =>
         new Response(
@@ -27,9 +33,16 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // HTML: siempre red primero para evitar servir versiones viejas
+  if (e.request.method !== 'GET') return;
+
+  // HTML: siempre red primero para evitar servir versiones viejas.
+  // ignoreSearch: el retorno de OAuth puede traer ?code=/?error= en la URL.
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    e.respondWith(
+      fetch(e.request).catch(() =>
+        caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('/app'))
+      )
+    );
     return;
   }
 
