@@ -1556,6 +1556,8 @@
     .pantry-empty-icon { font-size: 44px; margin-bottom: 10px; }
     .pantry-empty p { font-size: 14px; line-height: 1.6; }
 
+    .kitchen-hint { font-size: 12px; color: var(--text-muted); margin: -4px 0 4px; }
+
     /* ─── PANTRY CARD (setup screen) ────────────────────── */
     .pantry-card-setup {
       background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -2840,17 +2842,17 @@
     <p class="subtitle">Saca una foto a tu nevera y te digo qué puedes cocinar ahora mismo.</p>
 
     <!-- Despensa card -->
-    <div class="pantry-card-setup" onclick="showPantryScreen()" id="pantrySetupCard">
+    <div class="pantry-card-setup" onclick="showPantryScreen('setup')" id="pantrySetupCard">
       <div class="pantry-card-setup-top">
-        <span class="pantry-card-setup-icon">🧺</span>
+        <span class="pantry-card-setup-icon">🏠</span>
         <div class="pantry-card-setup-info">
-          <div class="pantry-card-setup-title">Mi despensa <span class="pantry-count-badge" id="pantryBadge" style="display:none">0</span></div>
-          <div class="pantry-card-setup-sub" id="pantrySetupSub">Básicos que siempre tienes en casa</div>
+          <div class="pantry-card-setup-title">Mi cocina <span class="pantry-count-badge" id="pantryBadge" style="display:none">0</span></div>
+          <div class="pantry-card-setup-sub" id="pantrySetupSub">Tus utensilios y básicos de despensa</div>
         </div>
         <span class="pantry-card-setup-arrow">›</span>
       </div>
       <div class="pantry-card-preview" id="pantrySetupPreview">
-        <span class="pantry-card-empty">Toca para añadir especias, aceites y más...</span>
+        <span class="pantry-card-empty">Toca para añadir tus utensilios, especias y más...</span>
       </div>
     </div>
 
@@ -2882,24 +2884,6 @@
         <span class="diet-icon">🌙</span>
         <span class="diet-label">Cena</span>
       </label>
-    </div>
-
-    <label class="field-label" style="margin-top:16px">Electrodoméstico</label>
-    <div class="appliance-grid">
-      <div class="appliance-option appliance-opt selected" data-appliance="ninguno" id="applianceNone">
-        <span class="appliance-icon">🍳</span>
-        <span class="appliance-label">Sin preferencia</span>
-      </div>
-      <div class="appliance-option appliance-opt" data-appliance="airfryer" id="applianceAirfryer">
-        <span class="appliance-icon">🌬️</span>
-        <span class="appliance-label">Air Fryer</span>
-        <span class="pro-lock-label" id="lockAirfryer" style="display:none">PRO</span>
-      </div>
-      <div class="appliance-option appliance-opt" data-appliance="thermomix" id="applianceThermomix">
-        <span class="appliance-icon">🤖</span>
-        <span class="appliance-label">Thermomix</span>
-        <span class="pro-lock-label" id="lockThermomix" style="display:none">PRO</span>
-      </div>
     </div>
 
     <div class="quick-actions">
@@ -2997,7 +2981,7 @@
 
     <div class="star-hint" id="starHint" style="display:none">
       <span class="star-hint-icon">★</span>
-      <span class="star-hint-text">Toca la estrella de un ingrediente para que sea <strong>obligatorio</strong> en las recetas generadas</span>
+      <span class="star-hint-text">Toca la estrella de un ingrediente o utensilio para que sea <strong>obligatorio</strong> en las recetas generadas</span>
       <button class="star-hint-close" onclick="dismissStarHint()">✕</button>
     </div>
 
@@ -3032,6 +3016,10 @@
       <p class="photo-gallery-label" style="margin-top:4px">🧂 Siempre disponible</p>
       <div class="ing-list" id="pantryIngList"></div>
     </div>
+    <div id="toolsIngredientSection">
+      <p class="photo-gallery-label" style="margin-top:4px">🍳 Tus utensilios</p>
+      <div class="ing-list" id="toolsIngList"></div>
+    </div>
 
     <div id="ingredientsError" class="error-banner"></div>
     <div class="spacer"></div>
@@ -3064,9 +3052,14 @@
   ═══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-pantry">
     <div class="header">
-      <button class="back-btn" onclick="showScreen('setup')">←</button>
-      <div class="logo" style="font-size:20px">Mi despensa</div>
+      <button class="back-btn" onclick="closeKitchenScreen()">←</button>
+      <div class="logo" style="font-size:20px">Mi cocina</div>
     </div>
+    <!-- Utensilios -->
+    <p class="pantry-section-title">🍳 Utensilios</p>
+    <p class="kitchen-hint">Marca lo que tienes. Las recetas solo usarán estos aparatos.</p>
+    <div class="appliance-grid" id="kitchenToolsGrid"></div>
+    <p class="pantry-section-title" style="margin-top:24px">🧺 Despensa</p>
 
     <!-- Hero banner -->
     <div class="pantry-hero">
@@ -3509,15 +3502,12 @@
     state.servingsOptions = prefs.servingsOptions || [2];
     state.mealTypes = prefs.mealTypes || [];
     state.dietPrefs = prefs.dietPrefs || [];
-    state.appliance = prefs.appliance || 'ninguno';
     document.querySelectorAll('.time-btn:not(.serving-btn)').forEach(btn =>
       btn.classList.toggle('selected', state.timeLimits.includes(parseInt(btn.dataset.time))));
     document.querySelectorAll('.serving-btn').forEach(btn =>
       btn.classList.toggle('selected', state.servingsOptions.includes(parseInt(btn.dataset.servings))));
     document.querySelectorAll('.meal-option').forEach(el =>
       el.classList.toggle('selected', state.mealTypes.includes(el.dataset.meal)));
-    document.querySelectorAll('.appliance-opt').forEach(opt =>
-      opt.classList.toggle('selected', opt.dataset.appliance === state.appliance));
     document.querySelectorAll('.diet-btn').forEach(btn =>
       btn.classList.toggle('selected', state.dietPrefs.includes(btn.dataset.diet)));
   }
@@ -3531,7 +3521,8 @@
       servings_options: prefs.servingsOptions || [2],
       meal_types: prefs.mealTypes || [],
       diet_prefs: prefs.dietPrefs || [],
-      appliance: prefs.appliance || 'ninguno',
+      appliance: 'ninguno', // sustituido por kitchen_tools
+      kitchen_tools: getTools(),
       pantry_items: getPantry()
     });
   }
@@ -3615,20 +3606,28 @@
       renderPantryInIngredients();
     }
 
+    // 4b. Utensilios: cloud gana si tiene; si no, los locales; si no, migra el antiguo appliance único
+    const cloudTools = Array.isArray(cloudPrefs?.kitchen_tools) ? cloudPrefs.kitchen_tools : [];
+    const finalTools = cloudTools.length ? cloudTools
+      : getTools().length ? getTools()
+      : (['airfryer', 'thermomix'].includes(cloudPrefs?.appliance) ? [cloudPrefs.appliance] : []);
+    localStorage.setItem('fridgeshot_tools', JSON.stringify(finalTools));
+    renderKitchenTools();
+    renderPantrySetupCard();
+    renderToolsInIngredients();
+
     // 5. Preferences: cloud wins when it exists (don't let local defaults override user's saved choices)
     const localPrefs = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
     const finalPrefs = cloudPrefs ? {
       timeLimits: cloudPrefs.time_limits || [30],
       servingsOptions: cloudPrefs.servings_options || [2],
       mealTypes: cloudPrefs.meal_types || [],
-      dietPrefs: cloudPrefs.diet_prefs || [],
-      appliance: cloudPrefs.appliance || 'ninguno'
+      dietPrefs: cloudPrefs.diet_prefs || []
     } : {
       timeLimits: localPrefs.timeLimits || [30],
       servingsOptions: localPrefs.servingsOptions || [2],
       mealTypes: localPrefs.mealTypes || [],
-      dietPrefs: localPrefs.dietPrefs || [],
-      appliance: localPrefs.appliance || 'ninguno'
+      dietPrefs: localPrefs.dietPrefs || []
     };
 
     localStorage.setItem('fridgeshot_prefs', JSON.stringify(finalPrefs));
@@ -3641,7 +3640,8 @@
       servings_options: finalPrefs.servingsOptions,
       meal_types: finalPrefs.mealTypes,
       diet_prefs: finalPrefs.dietPrefs,
-      appliance: finalPrefs.appliance,
+      appliance: 'ninguno', // sustituido por kitchen_tools
+      kitchen_tools: finalTools,
       pantry_items: mergedPantry
     });
     if (upsertErr) console.error('user_preferences upsert:', upsertErr);
@@ -3665,11 +3665,6 @@
       btn.textContent = _isPro ? '⭐' : '👤';
       btn.title = _isPro ? `Pro · ${_currentUser.email}` : _currentUser.email;
     }
-    // Mostrar/ocultar badge PRO en electrodomésticos
-    ['lockAirfryer', 'lockThermomix'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = _isPro ? 'none' : 'block';
-    });
     // Badge en chat
     const chatBadge = document.getElementById('chatProBadge');
     if (chatBadge) chatBadge.style.display = _isPro ? 'none' : 'inline';
@@ -3753,11 +3748,11 @@
     servingsOptions: [2],
     mealTypes: [],
     dietPrefs: [],
-    appliance: 'ninguno',
     images: [],               // [{ id, file, base64, preview }]
     detectedBrands: [],       // [{ ingredient, brand, store }]
     ingredients: [],
     mustInclude: [],
+    mustUseTools: [],         // ids de utensilios exigidos en esta generación (★ en ingredientes)
     recipes: [],
     currentRecipeIndex: null
   };
@@ -3770,17 +3765,12 @@
     const saved = JSON.parse(localStorage.getItem('fridgeshot_prefs') || '{}');
     if (Object.keys(saved).length > 0) applyPreferencesToUI(saved);
 
-    // Appliance buttons — single select, Pro gate para AirFryer/Thermomix
-    document.querySelectorAll('.appliance-opt').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const val = opt.dataset.appliance;
-        state.appliance = (val !== 'ninguno' && opt.classList.contains('selected'))
-          ? 'ninguno' : val;
-        document.querySelectorAll('.appliance-opt').forEach(o =>
-          o.classList.toggle('selected', o.dataset.appliance === state.appliance)
-        );
-      });
-    });
+    // Migración: el antiguo selector "Electrodoméstico" (uno solo) pasa a ser un utensilio de Mi cocina
+    if (localStorage.getItem('fridgeshot_tools') === null) {
+      localStorage.setItem('fridgeshot_tools',
+        JSON.stringify(['airfryer', 'thermomix'].includes(saved.appliance) ? [saved.appliance] : []));
+    }
+    renderKitchenTools();
 
     // Time buttons — single-select
     document.querySelectorAll('.time-btn:not(.serving-btn)').forEach(btn => {
@@ -3823,8 +3813,7 @@
         timeLimits: state.timeLimits,
         servingsOptions: state.servingsOptions,
         mealTypes: state.mealTypes,
-        dietPrefs: state.dietPrefs,
-        appliance: state.appliance
+        dietPrefs: state.dietPrefs
       };
       localStorage.setItem('fridgeshot_prefs', JSON.stringify(prefs));
       syncPrefsToCloud();
@@ -4132,13 +4121,14 @@
     const isRecipes = mode === 'recipes';
     const countText = photoCount > 1 ? `${photoCount} fotos` : 'tu foto';
 
-    const applianceEmoji = state.appliance === 'airfryer' ? '🌬️'
-                         : state.appliance === 'thermomix' ? '🤖' : '👨‍🍳';
+    const must = state.mustUseTools;
+    const applianceEmoji = must.includes('thermomix') ? '🤖'
+                         : must.includes('airfryer') ? '🌬️' : '👨‍🍳';
 
     document.getElementById('loadingEmoji').textContent = isRecipes ? applianceEmoji : '🔍';
     document.getElementById('loadingTitle').textContent = isRecipes
-      ? (state.appliance === 'airfryer' ? 'Adaptando para Air Fryer...'
-       : state.appliance === 'thermomix' ? 'Configurando Thermomix...'
+      ? (must.includes('thermomix') ? 'Configurando Thermomix...'
+       : must.includes('airfryer') ? 'Adaptando para Air Fryer...'
        : 'Pensando recetas...')
       : `Analizando ${countText}...`;
     document.getElementById('loadingMsg').textContent = steps[0].label + '...';
@@ -4268,7 +4258,8 @@
         timeLimits: state.timeLimits,
         servingsOptions: state.servingsOptions,
         mealTypes: state.mealTypes,
-        appliance: state.appliance
+        tools: getTools(),
+        mustUseTools: state.mustUseTools
       });
 
       stopLoading();
@@ -4277,7 +4268,8 @@
 
       posthog.capture('recipes_generated', {
         recipe_count: state.recipes.length,
-        appliance: state.appliance,
+        tools: getTools(),
+        must_use_tools: state.mustUseTools,
         diet_prefs: state.dietPrefs,
         time_limit: Math.max(...state.timeLimits)
       });
@@ -4547,10 +4539,10 @@
   function updateExpireNote() {
     const btn = document.getElementById('generateBtn');
     if (!btn) return;
-    const hasMust = state.mustInclude.length > 0;
-    if (hasMust) {
+    const mustNames = [...state.mustInclude, ...state.mustUseTools.map(id => kitchenTool(id)?.label || id)];
+    if (mustNames.length > 0) {
       btn.textContent = 'Generar recetas ★';
-      btn.title = `Incluir sí o sí: ${state.mustInclude.join(', ')}`;
+      btn.title = `Incluir sí o sí: ${mustNames.join(', ')}`;
     } else {
       btn.textContent = 'Generar recetas 🍽️';
       btn.title = '';
@@ -4564,12 +4556,6 @@
   function renderRecipeCards() {
     const container = document.getElementById('recipeCards');
     container.innerHTML = '';
-    const applianceBadgeHtml = state.appliance === 'airfryer'
-      ? `<span class="badge badge-appliance">🌬️ Air Fryer</span>`
-      : state.appliance === 'thermomix'
-      ? `<span class="badge badge-appliance-thermomix">🤖 Thermomix</span>`
-      : '';
-
     const recipes = state.recipes;
 
     recipes.forEach((recipe) => {
@@ -4597,7 +4583,7 @@
         </div>
         <div class="recipe-meta" onclick="showRecipeDetail(${i})" style="cursor:pointer">
           <span class="badge ${diffClass}">${diffEmoji} ${escapeHtml(recipe.difficulty)}</span>
-          ${applianceBadgeHtml}
+          ${toolBadgesHtml(recipe)}
         </div>
         <div class="recipe-key-ingredients" onclick="showRecipeDetail(${i})" style="cursor:pointer">
           ${(recipe.key_ingredients || []).map(k => escapeHtml(k)).join(' · ')}
@@ -4618,9 +4604,8 @@
     const servingsTxt = state.servingsOptions.sort((a,b)=>a-b).join('-') + ' pers.';
     const mealTxt = state.mealTypes.length > 0 ? ` · ${state.mealTypes.join('/')}` : '';
     const dietNote = state.dietPrefs.length > 0 ? ` · ${state.dietPrefs.join(', ')}` : '';
-    const applianceTxt = state.appliance !== 'ninguno'
-      ? ` · ${state.appliance === 'airfryer' ? '🌬️ Air Fryer' : '🤖 Thermomix'}`
-      : '';
+    const applianceTxt = state.mustUseTools.map(id => kitchenTool(id))
+      .filter(Boolean).map(t => ` · ${t.emoji} ${t.label}`).join('');
     subtitle.textContent = `${state.ingredients.length} ingredientes · ${timeTxt} · ${servingsTxt}${mealTxt}${dietNote}${applianceTxt}`;
 
     renderRecipeCards();
@@ -4650,7 +4635,8 @@
         timeLimits: state.timeLimits,
         servingsOptions: state.servingsOptions,
         mealTypes: state.mealTypes,
-        appliance: state.appliance,
+        tools: getTools(),
+        mustUseTools: state.mustUseTools,
         count: 1,
         excludeNames
       });
@@ -4734,9 +4720,7 @@
         </li>
       `).join('');
 
-    const applianceBadge = state.appliance === 'airfryer' ? '<span class="badge badge-white">🌬️ Air Fryer</span>'
-      : state.appliance === 'thermomix' ? '<span class="badge badge-white">🤖 Thermomix</span>'
-      : '';
+    const applianceBadge = toolBadgesHtml(recipe, true);
 
     document.getElementById('detailContent').innerHTML = `
       <div class="recipe-detail-header">
@@ -4779,7 +4763,7 @@
     document.getElementById('detailSaveBtn').textContent = isSaved(recipe) ? '❤️' : '🤍';
     renderRecipePhotoSection(recipe.name);
 
-    posthog.capture('recipe_detail_opened', { recipe_name: recipe.name, appliance: state.appliance });
+    posthog.capture('recipe_detail_opened', { recipe_name: recipe.name, tools_used: recipe.tools_used || [] });
     showScreen('detail');
     requestWakeLock();
   }
@@ -5344,15 +5328,22 @@
     if (error) console.error('Error sincronizando despensa:', error.message);
   }
 
-  function showPantryScreen() {
+  let _kitchenReturnScreen = 'setup';
+  function showPantryScreen(returnTo = 'setup') {
+    _kitchenReturnScreen = returnTo;
     renderPantryScreen();
     showScreen('pantry');
+  }
+  function closeKitchenScreen() {
+    if (_kitchenReturnScreen === 'ingredients') renderPantryInIngredients();
+    showScreen(_kitchenReturnScreen);
   }
 
   function renderPantryScreen() {
     const pantry = getPantry();
     document.getElementById('pantryCount').textContent = pantry.length;
     renderPantrySetupCard(); // keep setup card in sync
+    renderKitchenTools();
 
     // Suggestions (skip already added)
     const sugRow = document.getElementById('pantrySuggestions');
@@ -5404,20 +5395,25 @@
 
   function renderPantrySetupCard() {
     const pantry = getPantry();
-    updatePantryBadge(pantry.length);
+    const tools = getTools().map(kitchenTool).filter(Boolean);
+    updatePantryBadge(pantry.length + tools.length);
     const preview = document.getElementById('pantrySetupPreview');
     const sub = document.getElementById('pantrySetupSub');
     if (!preview || !sub) return;
-    if (pantry.length === 0) {
-      sub.textContent = 'Básicos que siempre tienes en casa';
-      preview.innerHTML = '<span class="pantry-card-empty">Toca para añadir especias, aceites y más...</span>';
+    if (pantry.length === 0 && tools.length === 0) {
+      sub.textContent = 'Tus utensilios y básicos de despensa';
+      preview.innerHTML = '<span class="pantry-card-empty">Toca para añadir tus utensilios, especias y más...</span>';
       return;
     }
-    sub.textContent = `${pantry.length} item${pantry.length !== 1 ? 's' : ''} guardados`;
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    sub.textContent = [
+      tools.length ? plural(tools.length, 'utensilio', 'utensilios') : '',
+      pantry.length ? plural(pantry.length, 'básico', 'básicos') : ''
+    ].filter(Boolean).join(' · ');
+    const chips = [...tools.map(t => `${t.emoji} ${t.label}`), ...pantry];
     const MAX = 4;
-    const shown = pantry.slice(0, MAX);
-    const rest = pantry.length - MAX;
-    preview.innerHTML = shown.map(i => `<span class="pantry-preview-chip">${escapeHtml(i)}</span>`).join('') +
+    const rest = chips.length - MAX;
+    preview.innerHTML = chips.slice(0, MAX).map(i => `<span class="pantry-preview-chip">${escapeHtml(i)}</span>`).join('') +
       (rest > 0 ? `<span class="pantry-preview-more">+${rest} más</span>` : '');
   }
 
@@ -5448,6 +5444,7 @@
   }
 
   function renderPantryInIngredients() {
+    renderToolsInIngredients();
     const pantry = getPantry();
     const section = document.getElementById('pantryIngredientSection');
     const list = document.getElementById('pantryIngList');
@@ -5468,6 +5465,101 @@
       `;
       list.appendChild(row);
     });
+  }
+
+  // ─────────────────────────────────────────────────────────
+  //  MI COCINA — utensilios (los ids deben coincidir con TOOLS en api/recipes.js)
+  // ─────────────────────────────────────────────────────────
+  const KITCHEN_TOOLS = [
+    { id: 'placa',      emoji: '🍳', label: 'Fuegos' },
+    { id: 'horno',      emoji: '♨️', label: 'Horno' },
+    { id: 'microondas', emoji: '⏲️', label: 'Microondas' },
+    { id: 'airfryer',   emoji: '🌬️', label: 'Air Fryer' },
+    { id: 'thermomix',  emoji: '🤖', label: 'Thermomix' },
+    { id: 'olla',       emoji: '🍲', label: 'Olla exprés' },
+    { id: 'batidora',   emoji: '🥤', label: 'Batidora' },
+  ];
+  function kitchenTool(id) { return KITCHEN_TOOLS.find(t => t.id === id); }
+
+  function getTools() {
+    try {
+      const arr = JSON.parse(localStorage.getItem('fridgeshot_tools') || '[]');
+      return Array.isArray(arr) ? arr.filter(id => kitchenTool(id)) : [];
+    } catch { return []; }
+  }
+  function persistTools(arr) {
+    localStorage.setItem('fridgeshot_tools', JSON.stringify(arr));
+    if (_currentUser) syncToolsToCloud(arr);
+  }
+  async function syncToolsToCloud(tools) {
+    const { error } = await _supabase.from('user_preferences').upsert({
+      user_id: _currentUser.id,
+      kitchen_tools: tools
+    }, { onConflict: 'user_id' });
+    if (error) console.error('Error sincronizando utensilios:', error.message);
+  }
+
+  function toggleKitchenTool(id) {
+    const tools = getTools();
+    const next = tools.includes(id) ? tools.filter(t => t !== id) : [...tools, id];
+    persistTools(next);
+    // Un utensilio que ya no tienes no puede ser obligatorio
+    state.mustUseTools = state.mustUseTools.filter(t => next.includes(t));
+    renderKitchenTools();
+    renderPantrySetupCard();
+    renderToolsInIngredients();
+    updateExpireNote();
+  }
+
+  function renderKitchenTools() {
+    const grid = document.getElementById('kitchenToolsGrid');
+    if (!grid) return;
+    const tools = getTools();
+    grid.innerHTML = KITCHEN_TOOLS.map(t => `
+      <div class="appliance-option${tools.includes(t.id) ? ' selected' : ''}" onclick="toggleKitchenTool('${t.id}')">
+        <span class="appliance-icon">${t.emoji}</span>
+        <span class="appliance-label">${t.label}</span>
+      </div>`).join('');
+  }
+
+  // Utensilios en la pantalla de ingredientes, con ★ para exigirlos en esta receta
+  function renderToolsInIngredients() {
+    const list = document.getElementById('toolsIngList');
+    if (!list) return;
+    const tools = getTools();
+    if (tools.length === 0) {
+      list.innerHTML = `
+        <div class="ing-row pantry" onclick="showPantryScreen('ingredients')" style="cursor:pointer">
+          <div class="ing-row-main"><span class="ing-name">+ Añade tus utensilios para recetas adaptadas a tu cocina</span></div>
+        </div>`;
+      return;
+    }
+    list.innerHTML = tools.map(kitchenTool).map(t => `
+      <div class="ing-row pantry" data-tool="${t.id}">
+        <button class="ing-must-btn${state.mustUseTools.includes(t.id) ? ' active' : ''}"
+                onclick="toggleMustUseTool('${t.id}')" title="Usar sí o sí en la receta">★</button>
+        <div class="ing-row-main"><span class="ing-name">${t.emoji} ${t.label}</span></div>
+      </div>`).join('');
+  }
+
+  function toggleMustUseTool(id) {
+    dismissStarHint();
+    state.mustUseTools = state.mustUseTools.includes(id)
+      ? state.mustUseTools.filter(t => t !== id)
+      : [...state.mustUseTools, id];
+    const btn = document.querySelector(`.ing-row[data-tool="${id}"] .ing-must-btn`);
+    if (btn) btn.classList.toggle('active', state.mustUseTools.includes(id));
+    updateExpireNote();
+  }
+
+  // Badges de los utensilios que usa una receta. Las guardadas antes de Mi cocina solo tienen `appliance`.
+  function toolBadgesHtml(recipe, white = false) {
+    const ids = recipe.tools_used?.length ? recipe.tools_used
+      : (recipe.appliance && recipe.appliance !== 'ninguno' ? [recipe.appliance] : []);
+    return ids.filter(id => id !== 'placa').map(kitchenTool).filter(Boolean).map(t => {
+      const cls = white ? 'badge-white' : t.id === 'thermomix' ? 'badge-appliance-thermomix' : 'badge-appliance';
+      return `<span class="badge ${cls}">${t.emoji} ${t.label}</span>`;
+    }).join('');
   }
 
   // ─────────────────────────────────────────────────────────
@@ -5598,6 +5690,7 @@
   function loadSession(session) {
     state.ingredients = [...session.ingredients];
     state.mustInclude = [];
+    state.mustUseTools = [];
     state.images = [];
     if (session.recipes && session.recipes.length > 0) {
       state.recipes = session.recipes;
@@ -5615,6 +5708,7 @@
     state.images = [];
     state.ingredients = [];
     state.mustInclude = [];
+    state.mustUseTools = [];
     state.recipes = [];
     renderPhotoGrid();
     document.getElementById('fileInputGallery').value = '';
@@ -5626,6 +5720,7 @@
     state.images = [];
     state.ingredients = [];
     state.mustInclude = [];
+    state.mustUseTools = [];
     state.recipes = [];
     renderIngredients();
     renderPantryInIngredients();

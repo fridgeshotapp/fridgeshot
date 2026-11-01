@@ -127,3 +127,9 @@ test('index.html no promete límites ni planes de pago (Pro está dormido)', () 
   assert.doesNotMatch(landing, /análisis (gratis )?(por|\/|esta) semana/i, 'la landing no debe anunciar el límite semanal');
   assert.doesNotMatch(landing, /3[.,]99|\bPro\b/, 'la landing no debe mencionar el plan Pro');
 });
+
+test('Mi cocina: los utensilios del frontend y del backend coinciden', () => {
+  const front = [...appHtml.match(/const KITCHEN_TOOLS = \[([\s\S]*?)\];/)[1].matchAll(/id: '(\w+)'/g)].map(m => m[1]);
+  const back = [...read('api/recipes.js').match(/const TOOLS = \{([\s\S]*?)\};/)[1].matchAll(/^\s*(\w+):/gm)].map(m => m[1]);
+  assert.deepEqual(front.sort(), back.sort());
+});

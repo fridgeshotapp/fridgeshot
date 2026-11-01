@@ -84,7 +84,9 @@ Models are overridable without code changes via `OPENAI_MODEL_VISION`, `OPENAI_M
 
 **Stripe webhook** (`api/stripe/webhook.js`) requires raw body — Vercel's body parser is disabled via `module.exports.config = { api: { bodyParser: false } }`. Do not change this.
 
-**Spoonacular** is only called in `recipes.js` when `appliance` is `airfryer` or `thermomix`. Results are cached in Upstash Redis with 24h TTL.
+**"Mi cocina" (utensilios + despensa):** the user marks the kitchen tools they own (`KITCHEN_TOOLS` in `app.html`, `TOOLS` in `api/recipes.js` — same ids, guardrail test) and can star one on the ingredients screen to make it mandatory for that generation, like ingredients. `/api/recipes` takes `tools` (constraint: never use anything not owned; empty = no restriction) and `mustUseTools`, and returns `tools_used` per recipe (+ a derived `appliance` for the `saved_recipes` column). The old single `appliance` field is still accepted and treated as mandatory for cached clients. Tools persist in `localStorage.fridgeshot_tools` and `user_preferences.kitchen_tools`.
+
+**Spoonacular** is only called in `recipes.js` when Air Fryer or Thermomix is marked mandatory. Results are cached in Upstash Redis with 24h TTL.
 
 **CDN cache on HTML:** `vercel.json` pins `/`, `*.html`, `/manifest.json` to `s-maxage=60`, `/app` to `s-maxage=0` (no CDN cache — stale edge responses caused the app to serve outdated JS), and `sw.js` to `s-maxage=0`. Do not raise `/app` above 0.
 
@@ -128,7 +130,7 @@ Events tracked in `app.html` (via `capture(...)`): `app_opened`, `upload_screen_
 |---|---|
 | `user_subscriptions` | Stripe subscription status per user (`active`, `trialing`, `cancelled`) |
 | `saved_recipes` | Recipes favourited by users |
-| `user_preferences` | Stored filter preferences (time, servings, diet, pantry) |
+| `user_preferences` | Stored filter preferences (time, servings, diet, pantry, `kitchen_tools`; `appliance` is legacy, only read to migrate) |
 | `waitlist` | Email capture (upsert by email, rate-limited 5/h) |
 
 ## Environment variables

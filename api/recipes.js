@@ -87,27 +87,27 @@ function numList(v, min, max) {
     : [];
 }
 
-function buildApplianceBlock(appliance) {
-  if (!appliance || appliance === 'ninguno') return '';
+// Utensilios de "Mi cocina". Los ids deben coincidir con KITCHEN_TOOLS en app.html (guardrail test).
+const TOOLS = {
+  placa: 'fuegos / placa (sartén, cazo, olla)',
+  horno: 'horno',
+  microondas: 'microondas',
+  airfryer: 'Air Fryer (freidora de aire)',
+  thermomix: 'Thermomix',
+  olla: 'olla exprés',
+  batidora: 'batidora / minipimer',
+};
+const toolIds = v => [...new Set(strList(v).filter(id => Object.prototype.hasOwnProperty.call(TOOLS, id)))];
 
-  if (appliance === 'airfryer') {
-    return `
-ELECTRODOMÉSTICO: Air Fryer (freidora de aire)
-Las 3 recetas DEBEN estar diseñadas exclusivamente para cocinarse en una freidora de aire.
-Reglas de formato para los pasos:
+const AIRFRYER_RULES = `Reglas de formato para los pasos de Air Fryer:
 - Indica siempre la temperatura en °C (ej: "Precalentamos la freidora a 200°C durante 3 minutos.")
 - Especifica la posición de los alimentos en la cesta (ej: "Distribuimos en la cesta en una sola capa sin amontonar.")
 - Indica el tiempo exacto y si hay que dar la vuelta (ej: "Cocinamos 12 minutos, dando la vuelta a los 6 minutos.")
 - Si se necesita aceite, usa "Pintamos/rociamos con una cucharada de aceite" en vez de freír en aceite
 - El time_minutes debe reflejar el tiempo real en la freidora (generalmente 15-25 min)
 - Inspírate en recetas auténticas de Air Fryer populares en internet`;
-  }
 
-  if (appliance === 'thermomix') {
-    return `
-ELECTRODOMÉSTICO: Thermomix
-Las 3 recetas DEBEN estar diseñadas exclusivamente para cocinarse en Thermomix.
-Reglas de formato para los pasos (es CRÍTICO seguir el formato auténtico de Cookidoo):
+const THERMOMIX_RULES = `Reglas de formato para los pasos de Thermomix (es CRÍTICO seguir el formato auténtico de Cookidoo):
 - Usa el formato exacto: "Ponemos X en el vaso. Programamos N segundos/minutos, velocidad V."
 - Velocidades de referencia: vel. 4-5 para picar, vel. 6-7 para triturar, vel. 10 para textura muy fina, vel. 1-2 para sofreír, vel. cuchara para mezclar suave
 - Temperatura: Varoma (~115°C) para cocción al vapor, 100°C para hervir, 80-90°C para cremas
@@ -118,9 +118,27 @@ Reglas de formato para los pasos (es CRÍTICO seguir el formato auténtico de Co
 - Ejemplo: "Paso 2: Añadimos el aceite. Programamos 3 minutos, temperatura Varoma, velocidad 1."
 - El time_minutes debe ser realista para Thermomix (generalmente 20-40 min)
 - Inspírate en recetas de Cookidoo y blogs especializados en Thermomix`;
-  }
 
-  return '';
+// tools: lo que el usuario tiene en su cocina (restricción). mustUse: lo que exige para esta receta.
+// Sin tools configurados no se restringe nada (comportamiento anterior a "Mi cocina").
+function buildToolsBlock(tools, mustUse, recipeCount) {
+  const parts = [];
+  if (tools.length > 0) {
+    const missing = Object.keys(TOOLS).filter(id => !tools.includes(id));
+    parts.push(`UTENSILIOS: En mi cocina tengo: ${tools.map(id => TOOLS[id]).join(', ')}.`
+      + (missing.length ? ` NO tengo: ${missing.map(id => TOOLS[id]).join(', ')}. Ninguna receta puede usar algo que no tengo (por ejemplo, si no tengo horno, nada al horno).` : '')
+      + ' Utensilios básicos como cuchillos, tablas, boles o fuentes se dan por supuestos.');
+  }
+  if (mustUse.length > 0) {
+    const n = recipeCount === 1 ? 'La receta' : `CADA una de las ${recipeCount} recetas`;
+    parts.push(`OBLIGATORIO: ${n} DEBE cocinarse usando ${mustUse.map(id => TOOLS[id]).join(' y ')} como método de cocción principal.`);
+  } else if (tools.length > 0) {
+    parts.push('Elige libremente entre mis utensilios el que mejor encaje con cada receta.');
+  }
+  const has = id => tools.includes(id) || mustUse.includes(id);
+  if (has('airfryer')) parts.push(AIRFRYER_RULES);
+  if (has('thermomix')) parts.push(THERMOMIX_RULES);
+  return parts.join('\n');
 }
 
 module.exports = withSentry(async function handler(req, res) {
@@ -140,7 +158,7 @@ module.exports = withSentry(async function handler(req, res) {
     return res.status(400).json({ error: 'Cuerpo de la petición inválido' });
   }
 
-  const { ingredients, appliance, count } = req.body;
+  const { ingredients, count } = req.body;
   const mustInclude = strList(req.body.mustInclude);
   const dietPrefs = strList(req.body.dietPrefs);
   const mealTypes = strList(req.body.mealTypes);
@@ -148,8 +166,17 @@ module.exports = withSentry(async function handler(req, res) {
   const timeLimits = numList(req.body.timeLimits, 5, 240);
   const servingsOptions = numList(req.body.servingsOptions, 1, 20);
 
-  // AirFryer and Thermomix are Pro-only features — verify server-side
-  if (appliance && appliance !== 'ninguno') {
+  const mustUseTools = toolIds(req.body.mustUseTools);
+  // Clientes antiguos (antes de "Mi cocina") mandan un único appliance que exigía las 3 recetas
+  if (['airfryer', 'thermomix'].includes(req.body.appliance) && !mustUseTools.length) mustUseTools.push(req.body.appliance);
+  const tools = toolIds(req.body.tools);
+  // Lo obligatorio cuenta como disponible. Sin "Mi cocina" configurada (tools vacío) no se restringe nada,
+  // así que no se añade: si no, el resto de electrodomésticos pasarían a contar como "no los tengo".
+  if (tools.length) for (const id of mustUseTools) if (!tools.includes(id)) tools.push(id);
+  const specialMust = mustUseTools.find(id => id === 'thermomix' || id === 'airfryer');
+
+  // Exigir AirFryer/Thermomix es una función Pro — se verifica en el servidor
+  if (specialMust) {
     const isPro = await isProUser(req);
     if (!isPro) {
       return res.status(403).json({ error: 'Las recetas para AirFryer y Thermomix son exclusivas del plan Pro.' });
@@ -210,12 +237,12 @@ module.exports = withSentry(async function handler(req, res) {
     ? `IMPORTANTE: Estas recetas ya han sido sugeridas, NO las repitas ni uses el mismo nombre o concepto: ${excludeNames.join(', ')}. Sugiere algo completamente diferente.`
     : '';
 
-  const applianceText = buildApplianceBlock(appliance);
+  const toolsText = buildToolsBlock(tools, mustUseTools, recipeCount);
 
-  // Fetch real recipes from Spoonacular when an appliance is selected
+  // Recetas reales de Spoonacular como inspiración cuando se exige AirFryer/Thermomix
   let spoonacularContext = '';
-  if (appliance && appliance !== 'ninguno') {
-    const spoonRecipes = await getSpoonacularRecipes(ingredients, appliance);
+  if (specialMust) {
+    const spoonRecipes = await getSpoonacularRecipes(ingredients, specialMust);
     if (spoonRecipes.length > 0) {
       spoonacularContext = `Basándote en estas recetas reales de internet como inspiración (adapta y traduce al español):\n${
         spoonRecipes.map(r => {
@@ -226,11 +253,12 @@ module.exports = withSentry(async function handler(req, res) {
     }
   }
 
-  const systemMsg = appliance === 'thermomix'
+  const systemMsg = specialMust === 'thermomix'
     ? 'Eres un experto en Thermomix con conocimiento de miles de recetas de Cookidoo y blogs especializados. Cuando generas recetas para Thermomix, usas el formato exacto de Cookidoo: velocidades precisas, temperaturas, tiempos de programación y menciones a accesorios como la mariposa, el cestillo o el Varoma.'
-    : appliance === 'airfryer'
+    : specialMust === 'airfryer'
     ? 'Eres un experto en freidoras de aire (Air Fryer) con conocimiento de miles de recetas populares en internet. Cuando generas recetas para Air Fryer, incluyes siempre temperatura en °C, tiempo exacto de cocción, posición en la cesta y si hay que dar la vuelta.'
-    : 'Eres un chef experto que sugiere recetas caseras prácticas y deliciosas basadas en los ingredientes disponibles.';
+    : 'Eres un chef experto que sugiere recetas caseras prácticas y deliciosas basadas en los ingredientes disponibles.'
+      + (tools.includes('thermomix') || tools.includes('airfryer') ? ' También dominas la Thermomix (formato Cookidoo) y la Air Fryer.' : '');
 
   const prompt = `${spoonacularContext}Soy un chef casero y tengo estos ingredientes en casa: ${ingredients.join(', ')}.
 
@@ -240,7 +268,7 @@ ${dietText}
 ${timeText}
 ${servingsText}
 ${mealText}
-${applianceText}
+${toolsText}
 
 Sugiere EXACTAMENTE ${recipeCount} receta${recipeCount === 1 ? '' : 's'} que pueda hacer AHORA con lo que tengo.
 
@@ -260,12 +288,14 @@ Responde SOLO con este JSON:
       "difficulty": "fácil",
       "key_ingredients": ["ingrediente 1", "ingrediente 2", "ingrediente 3"],
       "all_ingredients": ["2 huevos", "1 tomate", "sal al gusto"],
-      "steps": ["Paso 1: descripción clara.", "Paso 2: descripción clara."]
+      "steps": ["Paso 1: descripción clara.", "Paso 2: descripción clara."],
+      "tools_used": ["placa"]
     }
   ]
 }
 
-difficulty solo puede ser: "fácil", "medio" o "difícil".`;
+difficulty solo puede ser: "fácil", "medio" o "difícil".
+tools_used: ids de los electrodomésticos que usa la receta, solo de esta lista: ${Object.keys(TOOLS).join(', ')}.`;
 
   try {
     const content = await chatJSON([
@@ -274,7 +304,7 @@ difficulty solo puede ser: "fácil", "medio" o "difícil".`;
     ], {
       endpoint: 'recipes',
       models: MODELS.recipes(),
-      max_tokens: recipeCount === 1 ? 1200 : (appliance === 'thermomix' ? 3000 : 2600),
+      max_tokens: recipeCount === 1 ? 1200 : ([...tools, ...mustUseTools].includes('thermomix') ? 3000 : 2600),
       deadlineMs: 52_000,
       attemptTimeoutMs: 40_000,
     });
@@ -288,6 +318,12 @@ difficulty solo puede ser: "fácil", "medio" o "difícil".`;
         key_ingredients: Array.isArray(r.key_ingredients) ? r.key_ingredients.map(String) : [],
         all_ingredients: Array.isArray(r.all_ingredients) ? r.all_ingredients.map(String) : [],
         steps: r.steps.map(String),
+        tools_used: toolIds(r.tools_used),
+      }))
+      .map(r => ({
+        ...r,
+        // Columna appliance de saved_recipes (y badges de recetas guardadas antiguas)
+        appliance: r.tools_used.includes('thermomix') ? 'thermomix' : r.tools_used.includes('airfryer') ? 'airfryer' : 'ninguno',
       }));
 
     if (recipes.length === 0) {

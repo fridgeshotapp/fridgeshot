@@ -67,6 +67,35 @@ test('recipes: sin ingredientes → 400', async () => {
   assert.equal(res.statusCode, 400);
 });
 
+test('recipes: Mi cocina — solo usa los utensilios que tienes y respeta los obligatorios', async () => {
+  delete process.env.SPOONACULAR_API_KEY;
+  queue(chatOk(JSON.stringify({ recipes: [
+    { name: 'Crema', difficulty: 'fácil', steps: ['a'], tools_used: ['thermomix', 'nave-espacial', 'placa'] },
+  ] })));
+  const res = await call('recipes.js', { ingredients: ['calabacín'], tools: ['placa', 'thermomix', 'xxx'], mustUseTools: ['thermomix'] });
+  assert.equal(res.statusCode, 200);
+  const prompt = mock.calls[0].body.messages[1].content;
+  assert.match(prompt, /En mi cocina tengo: fuegos[^\n]*Thermomix/);
+  assert.match(prompt, /NO tengo: [^\n]*horno/);
+  assert.match(prompt, /OBLIGATORIO: CADA una de las 3 recetas DEBE cocinarse usando Thermomix/);
+  assert.match(prompt, /Cookidoo/);
+  assert.deepEqual(res.body.recipes[0].tools_used, ['thermomix', 'placa']);
+  assert.equal(res.body.recipes[0].appliance, 'thermomix');
+});
+
+test('recipes: sin Mi cocina configurada no restringe; el appliance antiguo se trata como obligatorio', async () => {
+  queue(chatOk('{"recipes":[{"name":"A","steps":["a"]}]}'));
+  await call('recipes.js', { ingredients: ['huevo'] });
+  assert.doesNotMatch(mock.calls[0].body.messages[1].content, /UTENSILIOS|OBLIGATORIO: CADA/);
+
+  queue(chatOk('{"recipes":[{"name":"A","steps":["a"]}]}'));
+  const res = await call('recipes.js', { ingredients: ['huevo'], appliance: 'airfryer' });
+  const prompt = mock.calls[0].body.messages[1].content;
+  assert.match(prompt, /DEBE cocinarse usando Air Fryer/);
+  assert.doesNotMatch(prompt, /NO tengo/);
+  assert.deepEqual(res.body.recipes[0].tools_used, []);
+});
+
 test('chat: error de red → reintenta', async () => {
   queue(new TypeError('fetch failed'), chatOk('Hola'));
   const res = await call('chat.js', { recipe: { name: 'x', all_ingredients: 'no-array' }, messages: [], userMessage: 'hola' });
