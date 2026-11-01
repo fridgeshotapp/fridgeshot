@@ -88,6 +88,8 @@ Models are overridable without code changes via `OPENAI_MODEL_VISION`, `OPENAI_M
 
 **CDN cache on HTML:** `vercel.json` pins `/`, `*.html`, `/manifest.json` to `s-maxage=60`, `/app` to `s-maxage=0` (no CDN cache — stale edge responses caused the app to serve outdated JS), and `sw.js` to `s-maxage=0`. Do not raise `/app` above 0.
 
+**`.vercelignore` keeps internal files off the public site.** With no framework, Vercel serves every file in the repo, so `CLAUDE.md`, `docs/`, `marketing/`, `tests/`, `scripts/`, etc. were publicly readable until it was added. Any new internal folder or file at the root must be added there (guardrail test enforces the current list).
+
 **Content-Security-Policy** is set in `vercel.json` for all routes. Any new external origin (script CDN, analytics, ad pixel like TikTok/Meta, image host, API) must be added to the matching CSP directive or the browser silently blocks it.
 
 **Service worker** (`sw.js`, cache `fridgeshot-v12`): `/api/*` is network-only (returns a 503 JSON offline error), navigations are network-first, static files cache-first. Bump `CACHE` whenever a file in its `STATIC` list changes. The SW only handles same-origin requests — never route Supabase/Google/PostHog through it.
@@ -106,7 +108,7 @@ The landing (`index.html`) uses the same palette (`#00C896` / `#F97316` / `#0F11
 
 ## Marketing (marketing/)
 
-All marketing material lives in `marketing/` (`tiktok/`, `reddit/`), never in `/assets/` — that folder is deployed to production.
+All marketing material lives in `marketing/` (`tiktok/`, `reddit/`, excluded from deploy via `.vercelignore`), never in `/assets/` — that folder is deployed to production. `marketing/reddit/posts.md` has draft posts per community.
 
 `marketing/tiktok/` is for short TikTok reels (in progress). Script: `docs/guion-video-ads.md` (hook = "no sé qué cocinar", close with "gratis, sin tarjeta"). Planned flow: AI hook clips generated manually in Kling 3.0 (free tier, no API — generate at klingai.com, save to `marketing/tiktok/assets/raw/`) + real app screen recordings + TTS narration (ElevenLabs) + captions, assembled with Remotion into 9:16 MP4.
 
