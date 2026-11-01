@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>FridgeShot — Recetas con lo que tienes en la nevera</title>
-  <meta name="description" content="Haz una foto a tu nevera y FridgeShot te sugiere 3 recetas caseras al instante con IA. 3 análisis gratis por semana, sin tarjeta. AirFryer, Thermomix y Chef IA con Pro.">
+  <meta name="description" content="Haz una foto a tu nevera y FridgeShot te sugiere 3 recetas caseras al instante con IA. Gratis, sin tarjeta. AirFryer, Thermomix, Chef IA y foto IA del plato incluidos.">
 
   <!-- SEO -->
   <meta name="keywords" content="recetas con lo que tengo en la nevera, qué cocinar con lo que tengo en casa, app recetas nevera, recetas con ingredientes que tengo, cocinar con lo que tienes, recetas airfryer, recetas thermomix, app cocina gratis">
@@ -13,7 +13,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="FridgeShot — Foto de tu nevera → 3 recetas al instante">
-  <meta property="og:description" content="La IA analiza tu nevera y te dice exactamente qué puedes cocinar ahora mismo. Empieza gratis, 3 análisis por semana.">
+  <meta property="og:description" content="La IA analiza tu nevera y te dice exactamente qué puedes cocinar ahora mismo. Gratis, sin tarjeta.">
   <meta property="og:image" content="/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -50,8 +50,7 @@
     "applicationCategory": "LifestyleApplication",
     "operatingSystem": "Web, Android, iOS",
     "offers": [
-      { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "name": "Gratis" },
-      { "@type": "Offer", "price": "3.99", "priceCurrency": "EUR", "name": "Pro", "description": "Análisis ilimitados, AirFryer, Thermomix, Chef IA y recetas guardadas" }
+      { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "name": "Gratis" }
     ],
     "url": "https://fridgeshot.app/app"
   }
@@ -221,49 +220,6 @@
     .faq-item h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
     .faq-item p { font-size: 14px; color: var(--text-muted); }
 
-    /* ─── PRECIOS ────────────────────────────────────── */
-    .pricing-section { background: #13151E; padding: 80px 24px; border-top: 1px solid var(--border); }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 700px; margin: 0 auto; }
-    .pricing-card {
-      background: var(--card); border-radius: 20px;
-      padding: 32px; border: 1px solid var(--border);
-    }
-    .pricing-card.featured {
-      border-color: var(--green);
-      box-shadow: 0 0 0 1px var(--green), 0 8px 32px rgba(0,200,150,0.15);
-    }
-    .pricing-badge {
-      background: var(--green); color: #0A0C10;
-      border-radius: 8px; padding: 4px 10px;
-      font-size: 12px; font-weight: 700;
-      display: inline-block; margin-bottom: 16px;
-    }
-    .pricing-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: var(--text); }
-    .pricing-price { font-size: 40px; font-weight: 800; color: var(--green); margin: 12px 0 4px; }
-    .pricing-price span { font-size: 16px; color: var(--text-muted); font-weight: 400; }
-    .pricing-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
-    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-    .pricing-features li { font-size: 14px; display: flex; gap: 8px; color: var(--text); }
-    .pricing-features li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
-    .pricing-features li.no::before { content: "✗"; color: #3A3D4A; }
-    .pricing-features li.no { color: #4A4D5A; }
-    .pricing-cta {
-      width: 100%; padding: 14px; border-radius: 12px;
-      font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
-      text-decoration: none; display: block; text-align: center; transition: all 0.15s;
-    }
-    .pricing-cta.free {
-      background: var(--green-pale); color: var(--green);
-      border: 2px solid rgba(0,200,150,0.35);
-    }
-    .pricing-cta.free:hover { background: rgba(0,200,150,0.2); border-color: var(--green); }
-    .pricing-cta.pro {
-      background: var(--green); color: #0A0C10; border: none;
-      box-shadow: 0 4px 0 #007A5E, 0 6px 20px rgba(0,200,150,0.25);
-      font-weight: 800;
-    }
-    .pricing-cta.pro:hover { transform: translateY(-1px); box-shadow: 0 6px 0 #007A5E, 0 8px 24px rgba(0,200,150,0.3); }
-
     /* ─── CTA FINAL ──────────────────────────────────── */
     .cta-section {
       padding: 100px 24px; text-align: center;
@@ -296,14 +252,6 @@
     footer a { color: var(--text-muted); text-decoration: none; }
     footer a:hover { color: var(--text); }
     .footer-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
-
-    .feature-pro-badge {
-      background: var(--green); color: #0A0C10;
-      border-radius: 4px; padding: 2px 7px;
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      vertical-align: middle; margin-left: 6px; white-space: nowrap;
-    }
 
     @media (max-width: 600px) {
       .hero { padding: 56px 20px 64px; }
@@ -378,10 +326,10 @@
     <p>FridgeShot analiza lo que tienes en casa con IA y te dice exactamente qué puedes cocinar ahora mismo. Sin ir al súper.</p>
     <div class="hero-ctas">
       <a href="/app" class="cta-primary">📸 Probar gratis ahora</a>
-      <a href="#precios" class="cta-secondary">Ver planes</a>
+      <a href="#como-funciona" class="cta-secondary">Cómo funciona</a>
     </div>
     <div class="hero-limits">
-      <span>📸 3 análisis gratis / semana</span>
+      <span>📸 Gratis, sin tarjeta</span>
       <span>🔒 Tus fotos no se guardan</span>
       <span>📱 Funciona en móvil y PC</span>
     </div>
@@ -430,7 +378,7 @@
       <div class="feature">
         <div class="feature-icon">🌡️</div>
         <div>
-          <h3>AirFryer y Thermomix <span class="feature-pro-badge">Pro</span></h3>
+          <h3>AirFryer y Thermomix</h3>
           <p>Recetas específicas con temperaturas exactas, tiempos y velocidades para cada electrodoméstico.</p>
         </div>
       </div>
@@ -444,8 +392,15 @@
       <div class="feature">
         <div class="feature-icon">👨‍🍳</div>
         <div>
-          <h3>Chef IA en tiempo real <span class="feature-pro-badge">Pro</span></h3>
+          <h3>Chef IA en tiempo real</h3>
           <p>¿Tienes una duda mientras cocinas? Pregúntale al chef y recibe respuesta al instante.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <div>
+          <h3>Foto IA de tu plato</h3>
+          <p>Antes de cocinar, mira una foto generada por IA de cómo quedará tu receta terminada.</p>
         </div>
       </div>
       <div class="feature">
@@ -458,7 +413,7 @@
       <div class="feature">
         <div class="feature-icon">❤️</div>
         <div>
-          <h3>Guarda tus favoritas <span class="feature-pro-badge">Pro</span></h3>
+          <h3>Guarda tus favoritas</h3>
           <p>Guarda las recetas que más te gustan y accede a ellas desde cualquier dispositivo.</p>
         </div>
       </div>
@@ -472,11 +427,11 @@
     <div class="faq">
       <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-question">
-          <h3>¿Cuántos análisis puedo hacer gratis?</h3>
+          <h3>¿Es gratis?</h3>
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-answer">
-          <p>3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones.</p>
+          <p>Sí, FridgeShot es gratis y sin tarjeta. Cada análisis detecta todos los ingredientes y genera 3 recetas, con acceso a todas las funciones: AirFryer, Thermomix, Chef IA y foto IA del plato.</p>
         </div>
       </div>
       <div class="faq-item" onclick="toggleFaq(this)">
@@ -485,7 +440,7 @@
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-answer">
-          <p>No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google.</p>
+          <p>No necesitas cuenta para usar FridgeShot. Solo necesitarás iniciar sesión con Google si quieres guardar tus recetas favoritas y acceder a ellas desde cualquier dispositivo.</p>
         </div>
       </div>
       <div class="faq-item" onclick="toggleFaq(this)">
@@ -518,49 +473,10 @@
     </div>
   </div>
 
-  <!-- PRECIOS -->
-  <section class="pricing-section" id="precios">
-    <p class="section-label" style="text-align:center">Precios</p>
-    <h2 style="text-align:center;font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:12px;letter-spacing:-0.5px">Empieza gratis, mejora cuando quieras</h2>
-    <p style="text-align:center;color:var(--text-muted);font-size:15px;margin-bottom:48px">Sin permanencia · Cancela cuando quieras</p>
-    <div class="pricing-grid">
-      <div class="pricing-card">
-        <h3>Gratis</h3>
-        <div class="pricing-price">0€ <span>/ siempre</span></div>
-        <p class="pricing-desc">Para descubrir FridgeShot a tu ritmo.</p>
-        <ul class="pricing-features">
-          <li>3 análisis de foto por semana</li>
-          <li>3 recetas por análisis</li>
-          <li>Cocina normal (sartén, horno...)</li>
-          <li>Modo paso a paso</li>
-          <li class="no">AirFryer y Thermomix</li>
-          <li class="no">Chef IA en tiempo real</li>
-          <li class="no">Recetas guardadas en la nube</li>
-        </ul>
-        <a href="/app" class="pricing-cta free">Empezar gratis</a>
-      </div>
-      <div class="pricing-card featured">
-        <div class="pricing-badge">⭐ Más popular</div>
-        <h3>Pro</h3>
-        <div class="pricing-price">3,99€ <span>/ mes</span></div>
-        <p class="pricing-desc">Para sacar el máximo a FridgeShot cada semana.</p>
-        <ul class="pricing-features">
-          <li>Análisis ilimitados</li>
-          <li>AirFryer y Thermomix</li>
-          <li>Chef IA en tiempo real</li>
-          <li>Recetas guardadas en la nube</li>
-          <li>Historial de escaneos</li>
-          <li>Primero en nuevas funciones</li>
-        </ul>
-        <a href="/app" class="pricing-cta pro">Probar Pro gratis 7 días</a>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA FINAL -->
   <section class="cta-section">
     <h2>¿Qué hay en tu nevera ahora mismo?</h2>
-    <p>Descúbrelo en 30 segundos. 3 análisis gratis esta semana, sin tarjeta.</p>
+    <p>Descúbrelo en 30 segundos. Gratis, sin tarjeta.</p>
     <a href="/app" class="cta-white">📸 Abrir FridgeShot gratis</a>
   </section>
 
@@ -684,7 +600,7 @@
       });
     }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
 
-    document.querySelectorAll('.step, .feature, .faq-item, .pricing-card').forEach((el, i) => {
+    document.querySelectorAll('.step, .feature, .faq-item').forEach((el, i) => {
       el.classList.add('reveal');
       el.style.transitionDelay = `${(i % 4) * 0.08}s`;
       revealObserver.observe(el);
@@ -699,13 +615,13 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "¿Cuántos análisis puedo hacer gratis?",
-        "acceptedAnswer": { "@type": "Answer", "text": "3 análisis de foto por semana. Cada análisis detecta todos los ingredientes y genera 3 recetas. Con el plan Pro, análisis ilimitados y acceso a todas las funciones." }
+        "name": "¿Es gratis?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Sí, FridgeShot es gratis y sin tarjeta. Cada análisis detecta todos los ingredientes y genera 3 recetas, con acceso a todas las funciones: AirFryer, Thermomix, Chef IA y foto IA del plato." }
       },
       {
         "@type": "Question",
         "name": "¿Tengo que registrarme para usarlo?",
-        "acceptedAnswer": { "@type": "Answer", "text": "No necesitas cuenta para el plan gratis. Para el plan Pro —análisis ilimitados, AirFryer, Thermomix, Chef IA y favoritas guardadas— necesitarás una cuenta de Google." }
+        "acceptedAnswer": { "@type": "Answer", "text": "No necesitas cuenta para usar FridgeShot. Solo necesitarás iniciar sesión con Google si quieres guardar tus recetas favoritas y acceder a ellas desde cualquier dispositivo." }
       },
       {
         "@type": "Question",

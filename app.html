@@ -502,10 +502,6 @@
     .upload-tip-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 4px; font-size: 12px; opacity: 0.85; }
     .upload-tip-item span:first-child { font-size: 24px; }
 
-    .analyze-counter { font-size: 12px; text-align: center; padding: 6px 14px; border-radius: 8px; margin-top: 8px; }
-    .analyze-counter--ok { color: rgba(255,255,255,0.45); }
-    .analyze-counter--warn { color: #FCD34D; background: rgba(252,211,77,0.1); }
-    .analyze-counter--empty { color: #FCA5A5; background: rgba(252,165,165,0.1); font-weight: 600; }
 
     .upload-history-title { font-size: 13px; font-weight: 600; opacity: 0.65; margin: 18px 0 8px; }
     .upload-history-card { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
@@ -2691,7 +2687,6 @@
     .divider::before, .divider::after { background: var(--border); }
 
     /* ── Analyze counter ──────────────────────────────────── */
-    .analyze-counter--ok { color: var(--text-muted); }
 
     /* ── Photo thumbnails ─────────────────────────────────── */
     .photo-thumb { background: var(--border); }
@@ -2974,7 +2969,6 @@
 
     <div class="spacer"></div>
     <button class="btn-primary mt-24" id="analyzeBtn" disabled>Analizar <span id="analyzeBtnCount"></span> 🔍</button>
-    <div id="analyzeCounter" class="analyze-counter" style="display:none"></div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════
@@ -3663,7 +3657,6 @@
   async function loadProStatus() {
     _isPro = true;
     updateProUI();
-    updateAnalyzeCounter();
   }
 
   function updateProUI() {
@@ -3959,7 +3952,7 @@
 
     window.scrollTo(0, 0);
     if (name === 'setup') renderPantrySetupCard();
-    if (name === 'upload') { renderUploadHistory(); updateAnalyzeCounter(); posthog.capture('upload_screen_viewed'); }
+    if (name === 'upload') { renderUploadHistory(); posthog.capture('upload_screen_viewed'); }
     if (name === 'ingredients') showStarHintIfNeeded();
   }
 
@@ -4179,47 +4172,6 @@
   }
 
   // ─────────────────────────────────────────────────────────
-  //  ANALYZE COUNTER (tracks free weekly usage in localStorage)
-  // ─────────────────────────────────────────────────────────
-  const ANALYZE_LIMIT = 3;
-  const ANALYZE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-
-  function getWeeklyAnalyzeLog() {
-    try {
-      const log = JSON.parse(localStorage.getItem('fs_scan_log') || '[]');
-      const cutoff = Date.now() - ANALYZE_WINDOW_MS;
-      return log.filter(ts => ts > cutoff);
-    } catch { return []; }
-  }
-
-  function trackAnalyze() {
-    try {
-      const log = getWeeklyAnalyzeLog();
-      log.push(Date.now());
-      localStorage.setItem('fs_scan_log', JSON.stringify(log));
-    } catch {}
-  }
-
-  function updateAnalyzeCounter() {
-    const el = document.getElementById('analyzeCounter');
-    if (!el) return;
-    if (_isPro) { el.style.display = 'none'; return; }
-    const used = getWeeklyAnalyzeLog().length;
-    const remaining = Math.max(0, ANALYZE_LIMIT - used);
-    el.style.display = 'block';
-    if (remaining === 0) {
-      el.className = 'analyze-counter analyze-counter--empty';
-      el.innerHTML = '⚠️ Has usado tus 3 análisis semanales · <span onclick="openProModal(\'Análisis ilimitados con Pro\')" style="text-decoration:underline;cursor:pointer">Hazte Pro →</span>';
-    } else if (remaining === 1) {
-      el.className = 'analyze-counter analyze-counter--warn';
-      el.textContent = '⚠️ Te queda 1 análisis gratuito esta semana';
-    } else {
-      el.className = 'analyze-counter analyze-counter--ok';
-      el.textContent = `${remaining} de ${ANALYZE_LIMIT} análisis gratuitos restantes esta semana`;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────
   //  STEP 1: ANALYZE IMAGES (detect ingredients)
   // ─────────────────────────────────────────────────────────
   let _analyzingImages = false;
@@ -4245,7 +4197,6 @@
       state.ingredients = deduplicateIngredients(data.all_ingredients || []);
       state.detectedBrands = data.detected_brands || [];
 
-      trackAnalyze();
       posthog.capture('photo_analyzed', {
         photo_count: imagesBase64.length,
         ingredients_found: state.ingredients.length

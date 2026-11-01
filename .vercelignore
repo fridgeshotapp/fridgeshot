@@ -1,0 +1,15 @@
+# Only the public site (HTML, assets, PWA files) and api/ are deployed.
+# Everything else in the repo is internal and would otherwise be served publicly.
+CLAUDE.md
+README.md
+docs/
+marketing/
+tests/
+test/
+scripts/
+supabase/
+.github/
+.githooks/
+.claude/
+.mcp.json
+.env*

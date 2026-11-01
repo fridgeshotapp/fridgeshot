@@ -111,3 +111,19 @@ test('los iconos versionados que usan manifest/HTML existen', () => {
   const refs = new Set([...(read('manifest.json') + appHtml + read('index.html')).matchAll(/\/assets\/(icon-[\w-]+\.png)/g)].map(m => m[1]));
   for (const r of refs) assert.ok(fs.existsSync(path.join(ROOT, 'assets', r)), r);
 });
+
+test('.vercelignore excluye los archivos internos (sin él, Vercel los sirve públicamente)', () => {
+  const ignored = read('.vercelignore').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  for (const p of ['CLAUDE.md', 'docs/', 'marketing/', 'tests/', 'test/', 'scripts/', '.github/', '.githooks/']) {
+    assert.ok(ignored.includes(p), `.vercelignore debe incluir ${p}`);
+  }
+  for (const p of ['api/', 'assets/', 'app.html', 'index.html', 'sw.js', 'manifest.json']) {
+    assert.ok(!ignored.includes(p), `.vercelignore no debe excluir ${p} (se sirve en producción)`);
+  }
+});
+
+test('index.html no promete límites ni planes de pago (Pro está dormido)', () => {
+  const landing = read('index.html');
+  assert.doesNotMatch(landing, /análisis (gratis )?(por|\/|esta) semana/i, 'la landing no debe anunciar el límite semanal');
+  assert.doesNotMatch(landing, /3[.,]99|\bPro\b/, 'la landing no debe mencionar el plan Pro');
+});
